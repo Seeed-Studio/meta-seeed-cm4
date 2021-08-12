@@ -17,5 +17,6 @@ IMAGE_INSTALL_append = " \
 	qtquickdesigner-components \
 	python3-pyqt5 \
 	python3-logging \
+	reterminalqt5example \
 	"
 
