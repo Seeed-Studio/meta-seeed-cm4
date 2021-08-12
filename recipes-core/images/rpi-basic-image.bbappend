@@ -4,6 +4,8 @@ INHERIT_append = " \
 
 IMAGE_INSTALL_append = " \
 	kernel-module-mipi-dsi \
+	kernel-module-ltr30x \
+	kernel-module-lis3lv02d \
 	qtbase \
 	qtbase-plugins \
 	qtbase-tools  \
