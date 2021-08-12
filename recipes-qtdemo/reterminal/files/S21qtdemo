@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "loading qt demo..."
+export QT_QPA_PLATFORM=eglfs
+cd /home/root/Seeed_Python_ReTerminalQt5Examples/src/
+python3 main.py &
+echo "qt demo start ok!"
+
