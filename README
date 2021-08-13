@@ -1,24 +1,29 @@
-This README file contains information on the contents of the meta-reterminal layer.
+This README file contains information on the contents of the meta-seeed-reterminal layer.
 
 Please see the corresponding sections below for details.
 
 Dependencies
 ============
 
-  URI: <first dependency>
-  branch: <branch name>
+  URI: git://git.yoctoproject.org/poky
+  branch: master
 
-  URI: <second dependency>
-  branch: <branch name>
+  URI: https://github.com/agherzan/meta-raspberrypi.git
+  branch: master
 
-  .
-  .
-  .
+  URI: https://github.com/meta-qt5/meta-qt5.git
+  branch: master
+
+  URI: https://github.com/openembedded/meta-openembedded.git
+  branch: master
+
+  URI: https://github.com/openembedded/openembedded-core.git
+  branch: master
 
 Patches
 =======
 
-Please submit any patches against the meta-reterminal layer to the xxxx mailing list (xxxx@zzzz.org)
+Please submit any patches against the meta-seeed-reterminal layer to the xxxx mailing list (xxxx@zzzz.org)
 and cc: the maintainer:
 
 Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
@@ -26,16 +31,40 @@ Maintainer: XXX YYYYYY <xxx.yyyyyy@zzzzz.com>
 Table of Contents
 =================
 
-  I. Adding the meta-reterminal layer to your build
+  I. Adding the meta-seeed-reterminal layer to your build
  II. Misc
 
 
-I. Adding the meta-reterminal layer to your build
+I. Adding the meta-seeed-reterminal layer to your build
 =================================================
 
-Run 'bitbake-layers add-layer meta-reterminal'
+Run 'bitbake-layers add-layer meta-seeed-reterminal'
 
 II. Misc
 ========
+When you add all the dependencies above.
+Check your build/conf/bblayers.conf
 
---- replace with specific information about the meta-reterminal layer ---
+The following is mine:
+  /home/xiongjian/source_code/yocto/poky/meta \
+  /home/xiongjian/source_code/yocto/poky/meta-poky \
+  /home/xiongjian/source_code/yocto/poky/meta-yocto-bsp \
+  /home/xiongjian/source_code/yocto/poky/meta-raspberrypi \
+  /home/xiongjian/source_code/yocto/poky/meta-seeed-reterminal \
+  /home/xiongjian/source_code/yocto/poky/meta-qt5 \
+  /home/xiongjian/source_code/yocto/poky/meta-openembedded/meta-oe \
+  /home/xiongjian/source_code/yocto/poky/meta-openembedded/meta-python \
+
+Then modify the build/conf/local.conf:
+add 
+"MACHINE ??= "raspberrypi4-64" ",
+"RPI_KERNEL_DEVICETREE_OVERLAYS_append = " overlays/reTerminal.dtbo" "
+"PACKAGECONFIG_append_pn-qtbase = " eglfs " "
+to local.conf
+
+Now it's time to build the image with:
+"bitbake rpi-basic-image"
+
+After several hours of compiling.
+You can get the image in "build/tmp/deploy/images/raspberrypi4-64"
+with  .wic.bz2 suffix.
