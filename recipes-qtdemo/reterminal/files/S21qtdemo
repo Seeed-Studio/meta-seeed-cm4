@@ -1,5 +1,7 @@
 #!/bin/sh
 
+modprobe lis331dlh-i2c
+
 echo "loading qt demo..."
 export QT_QPA_PLATFORM=eglfs
 cd /home/root/Seeed_Python_ReTerminalQt5Examples/src/
