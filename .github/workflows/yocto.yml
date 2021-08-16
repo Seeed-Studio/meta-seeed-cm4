@@ -71,6 +71,7 @@ jobs:
         run: |
             cd ${WORKDIR}
             git clone -b master git://git.yoctoproject.org/poky
+            git reset --hard 7ade8346b3a09983257589d22aaada47e0eec010
             df -h
 
       - name: Building targets
