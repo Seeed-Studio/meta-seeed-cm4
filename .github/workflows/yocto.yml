@@ -11,8 +11,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 800
-    if: github.event.repository.owner.id == github.event.sender.id
 
     steps:
       - uses: actions/checkout@v2
@@ -72,15 +70,14 @@ jobs:
       - name: Setup yocto
         run: |
             cd ${WORKDIR}
-            git clone -b gatesgarth git://git.yoctoproject.org/poky
+            git clone -b master git://git.yoctoproject.org/poky
             df -h
 
       - name: Building targets
         run: |
-            cd ${WORKDIR}
-            git clone https://github.com/wbrn/yocto-actions
-            cp yocto-actions/build-*.sh poky
-            cd poky
+            cd ${WORKDIR}/poky
+            git clone -b master https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+            cp meta-seeed-reterminal/build-*.sh ./
             chmod +x build-*.sh
             ./build-raspberrypi3-64-image.sh
 
@@ -99,29 +96,3 @@ jobs:
           name: yocto deploy
           path: ${{env.PACKAGE}}
 
-      - name: Generate release tag
-        id: tag
-        run: |
-          echo "::set-output name=release_tag::$(date +"%Y.%m.%d")"
-          touch release.txt
-          echo "* yocto deploy image for Ubuntu$(lsb_release -s -r)" >> release.txt
-          echo "::set-output name=status::success"
-
-      - name: Upload package to release
-        id: release
-        uses: softprops/action-gh-release@v1
-        if: steps.tag.outputs.status == 'success' && !cancelled()
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        with:
-          tag_name: ${{steps.tag.outputs.release_tag}}
-          body_path: release.txt
-          files: ${{env.PACKAGE}}
-          
-      - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@v0.1.0
-        with:
-          keep_latest: 3
-          delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
