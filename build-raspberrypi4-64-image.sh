@@ -15,7 +15,7 @@ bitbake-layers add-layer ../meta-openembedded/meta-python
 
 # modify local.conf to build raspberrypi4 64-bit system
 sed -i '/^MACHINE/s/= .*$/= "raspberrypi4-64"/g' conf/local.conf
-sed -i '$aRPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"' conf/local.conf
+sed -i '$aRPI_KERNEL_DEVICETREE_OVERLAYS += \" overlays/reTerminal.dtbo\"' conf/local.conf
 sed -i '$aPACKAGECONFIG_append_pn-qtbase = \" eglfs \"' conf/local.conf
 
 # building image
