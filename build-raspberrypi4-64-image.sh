@@ -1,21 +1,22 @@
 #!/bin/bash
 
-git clone -b gatesgarth git://git.openembedded.org/meta-openembedded
-git clone -b gatesgarth git://git.yoctoproject.org/meta-raspberrypi
-#git clone -b gatesgarth https://github.com/meta-qt5/meta-qt5
+git clone -b master https://github.com/agherzan/meta-raspberrypi.git
+git clone -b master https://github.com/meta-qt5/meta-qt5.git
+git clone -b master https://github.com/openembedded/meta-openembedded.git
+git clone -b master https://github.com/openembedded/openembedded-core.git
 
 source oe-init-build-env # in build dir
 
 bitbake-layers add-layer ../meta-raspberrypi
-#bitbake-layers add-layer ../meta-qt5
+bitbake-layers add-layer ../meta-seeed-reterminal
+bitbake-layers add-layer ../meta-qt5
+bitbake-layers add-layer ../meta-openembedded/meta-oe
+bitbake-layers add-layer ../meta-openembedded/meta-python
 
-# modify local.conf to build raspberrypi3 64-bit system
-sed -i '/^MACHINE/s/= .*$/= "raspberrypi3-64"/g' conf/local.conf
-sed -i '/^#SDKMA/s/#\(.*\)=.*$/\1= "x86_64"/g'  conf/local.conf
-#sed -i '/SDKMACHINE/aTOOLCHAIN_TARGET_TASK_append = "libc-staticdev"' conf/local.conf
-#sed -i '/qt5-ptest/aPACKAGECONFIG_remove = "tslib"' ../meta-qt5/recipes-qt/qt5/qtbase_git.bb
+# modify local.conf to build raspberrypi4 64-bit system
+sed -i '/^MACHINE/s/= .*$/= "raspberrypi4-64"/g' conf/local.conf
+echo "RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"" >> conf/local.conf
+echo "PACKAGECONFIG_append_pn-qtbase = \" eglfs \"" >> conf/local.conf
 
 # building image
-bitbake core-image-base
-#bitbake qtbase
-#bitbake core-image-base -c populate_sdk_ext
+bitbake rpi-basic-image
