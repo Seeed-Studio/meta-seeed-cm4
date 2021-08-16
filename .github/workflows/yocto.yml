@@ -1,4 +1,4 @@
-name: Yocto embedded linux
+name: Seeed reTerminal Yocto embedded linux
 
 on:
   workflow_dispatch:
@@ -79,7 +79,7 @@ jobs:
             git clone -b master https://github.com/Seeed-Studio/meta-seeed-reterminal.git
             cp meta-seeed-reterminal/build-*.sh ./
             chmod +x build-*.sh
-            ./build-raspberrypi3-64-image.sh
+            ./build-raspberrypi4-64-image.sh
 
       - name: Check disk usage
         run: df -h
