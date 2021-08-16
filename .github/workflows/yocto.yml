@@ -1,0 +1,127 @@
+name: Yocto embedded linux
+
+on:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+
+# Action will return to the startup working directory every run
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 800
+    if: github.event.repository.owner.id == github.event.sender.id
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Initialization environment
+        run: |
+          sudo apt-get remove aria2 ansible shellcheck rpm xorriso zsync \
+          clang-6.0 lldb-6.0 lld-6.0 clang-format-6.0 clang-8 lldb-8 lld-8 clang-format-8 \
+          clang-9 lldb-9 lld-9 clangd-9 clang-format-9 \
+          esl-erlang gfortran-8 gfortran-9 \
+          cabal-install-2.0 cabal-install-2.2 \
+          cabal-install-2.4 cabal-install-3.0 cabal-install-3.2 heroku imagemagick \
+          libmagickcore-dev libmagickwand-dev libmagic-dev ant ant-optional kubectl \
+          mercurial apt-transport-https mono-complete mysql-client libmysqlclient-dev \
+          mysql-server mssql-tools unixodbc-dev yarn bazel chrpath libssl-dev libxft-dev \
+          libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev \
+          php-zmq snmp pollinate libpq-dev postgresql-client ruby-full \
+          sphinxsearch subversion mongodb-org -yq >/dev/null 2>&1 \
+          || echo "failed main apt-get remove"
+
+          echo "Removing large packages"
+          sudo apt-get remove -y '^ghc-8.*'
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell
+
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get clean
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get autoclean -y >/dev/null 2>&1
+
+          #echo "https://github.com/actions/virtual-environments/issues/709"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+
+          echo "remove big /usr/local"
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/local/lib/android >/dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/sdk > /dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/shared > /dev/null 2>&1
+          sudo rm -rf /usr/share/swift > /dev/null 2>&1
+
+          sudo -E apt-get -qq update
+          sudo -E apt-get install gawk wget git-core diffstat unzip texinfo gcc-multilib build-essential \
+                chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping \
+                python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3 xterm python3-subunit mesa-common-dev
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo timedatectl set-timezone "$TZ"
+
+      - name: Setup building environment
+        run: |
+            sudo ln -sf /bin/bash /bin/sh
+            sudo mkdir -p /Yocto && sudo -E chmod 777 /Yocto
+            echo "WORKDIR=/Yocto" >> $GITHUB_ENV
+
+      - name: Setup yocto
+        run: |
+            cd ${WORKDIR}
+            git clone -b gatesgarth git://git.yoctoproject.org/poky
+            df -h
+
+      - name: Building targets
+        run: |
+            cd ${WORKDIR}
+            git clone https://github.com/wbrn/yocto-actions
+            cp yocto-actions/build-*.sh poky
+            cd poky
+            chmod +x build-*.sh
+            ./build-raspberrypi3-64-image.sh
+
+      - name: Check disk usage
+        run: df -h
+
+      - name: Pack
+        run: |
+            cd /Yocto/poky/build/tmp
+            tar -Jcf yocto-image.tar.xz deploy/images
+            echo "PACKAGE=/Yocto/poky/build/tmp/yocto-image.tar.xz" >> $GITHUB_ENV
+
+      - name: Upload package
+        uses: actions/upload-artifact@master
+        with:
+          name: yocto deploy
+          path: ${{env.PACKAGE}}
+
+      - name: Generate release tag
+        id: tag
+        run: |
+          echo "::set-output name=release_tag::$(date +"%Y.%m.%d")"
+          touch release.txt
+          echo "* yocto deploy image for Ubuntu$(lsb_release -s -r)" >> release.txt
+          echo "::set-output name=status::success"
+
+      - name: Upload package to release
+        id: release
+        uses: softprops/action-gh-release@v1
+        if: steps.tag.outputs.status == 'success' && !cancelled()
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          tag_name: ${{steps.tag.outputs.release_tag}}
+          body_path: release.txt
+          files: ${{env.PACKAGE}}
+          
+      - name: Remove old Releases
+        uses: dev-drprasad/delete-older-releases@v0.1.0
+        with:
+          keep_latest: 3
+          delete_tags: true
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
