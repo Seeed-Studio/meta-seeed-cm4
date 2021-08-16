@@ -76,7 +76,7 @@ jobs:
       - name: Building targets
         run: |
             cd ${WORKDIR}/poky
-            git clone -b master https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+            git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
             cp meta-seeed-reterminal/build-*.sh ./
             chmod +x build-*.sh
             ./build-raspberrypi4-64-image.sh
