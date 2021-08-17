@@ -15,10 +15,10 @@ bitbake-layers add-layer ../meta-openembedded/meta-python
 
 # modify local.conf to build raspberrypi4 64-bit system
 sed -i '/^MACHINE/s/= .*$/= "raspberrypi4-64"/g' conf/local.conf
-sed -i '/^DL_DIR/s/= .*$/= "/home/xiongjian/cache/yocto_cache/share/downloads"/g' conf/local.conf
+sed -i '$aDL_DIR ?= "/home/xiongjian/cache/yocto_cache/share/downloads"' conf/local.conf
+sed -i '$aSSTATE_DIR ?= "/home/xiongjian/compile/build_cache/sstate-cache"' conf/local.conf
 sed -i '$aRPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"' conf/local.conf
 sed -i '$aPACKAGECONFIG_append_pn-qtbase = \" eglfs \"' conf/local.conf
-sed -i '$aSSTATE_DIR ?= "/home/xiongjian/compile/build_cache/sstate-cache"' conf/local.conf
 
 # building image
 bitbake rpi-basic-image
