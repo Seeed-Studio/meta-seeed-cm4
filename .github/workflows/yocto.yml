@@ -9,8 +9,9 @@ env:
 
 # Action will return to the startup working directory every run
 jobs:
-  job_prepare_env:
+  build:
     runs-on: ubuntu-20.04
+    timeout-minutes: 800
 
     steps:
       - uses: actions/checkout@v2
@@ -82,15 +83,6 @@ jobs:
             cp meta-seeed-reterminal/build-*.sh ./
             chmod +x build-*.sh
             ./build-raspberrypi4-64-image.sh
-  job_build:
-    runs-on: ubuntu-20.04
-    needs: job_prepare_env
-
-    steps:
-      - name: Building targets
-        run: |
-          cd ${WORKDIR}/poky/build/
-          bitbake rpi-basic-image
 
       - name: Check disk usage
         run: df -h

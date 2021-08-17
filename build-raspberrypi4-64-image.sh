@@ -18,5 +18,5 @@ sed -i '/^MACHINE/s/= .*$/= "raspberrypi4-64"/g' conf/local.conf
 sed -i '$aRPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"' conf/local.conf
 sed -i '$aPACKAGECONFIG_append_pn-qtbase = \" eglfs \"' conf/local.conf
 
-# fetch all the resource for the building
-bitbake rpi-basic-image -c do_fetch
+# building image
+bitbake rpi-basic-image
