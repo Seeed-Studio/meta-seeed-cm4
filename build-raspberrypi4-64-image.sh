@@ -21,8 +21,8 @@ grep -q "^SSTATE_DIR ?= \"/home/xiongjian/compile/build_cache/sstate-cache\"$" c
 echo "SSTATE_DIR ?= \"/home/xiongjian/compile/build_cache/sstate-cache\"" >> conf/local.conf
 grep -q "^RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"$" conf/local.conf || \
 echo "RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"" >> conf/local.conf
-grep -q "^RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"$" conf/local.conf || \
-echo "RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"" >> conf/local.conf
+grep -q "^PACKAGECONFIG_append_pn-qtbase = \" eglfs \"$" conf/local.conf || \
+echo "PACKAGECONFIG_append_pn-qtbase = \" eglfs \"" >> conf/local.conf
 
 # building image
 bitbake rpi-basic-image
