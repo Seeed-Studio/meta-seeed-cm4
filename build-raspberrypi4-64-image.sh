@@ -7,6 +7,11 @@ git clone -b master https://github.com/openembedded/openembedded-core.git
 
 source oe-init-build-env # in build dir
 
+# get the build cache
+wget files.seeedstudio.com/xiongj/sstate-cache.tar.gz
+tar zxvf sstate-cache.tar.gz
+rm sstate-cache.tar.gz
+
 bitbake-layers add-layer ../meta-raspberrypi
 bitbake-layers add-layer ../meta-seeed-reterminal
 bitbake-layers add-layer ../meta-qt5
@@ -15,14 +20,14 @@ bitbake-layers add-layer ../meta-openembedded/meta-python
 
 # modify local.conf to build raspberrypi4 64-bit system
 sed -i '/^MACHINE/s/= .*$/= "raspberrypi4-64"/g' conf/local.conf
-grep -q "^DL_DIR ?= \"/home/xiongjian/cache/yocto_cache/share/downloads\"$" conf/local.conf || \
-echo "DL_DIR ?= \"/home/xiongjian/cache/yocto_cache/share/downloads\"" >> conf/local.conf
-grep -q "^SSTATE_DIR ?= \"/home/xiongjian/compile/build_cache/sstate-cache\"$" conf/local.conf || \
-echo "SSTATE_DIR ?= \"/home/xiongjian/compile/build_cache/sstate-cache\"" >> conf/local.conf
+#grep -q "^DL_DIR ?= \"/home/xiongjian/cache/yocto_cache/share/downloads\"$" conf/local.conf || \
+#echo "DL_DIR ?= \"/home/xiongjian/cache/yocto_cache/share/downloads\"" >> conf/local.conf
+#grep -q "^SSTATE_DIR ?= \"/home/xiongjian/compile/build_cache/sstate-cache\"$" conf/local.conf || \
+#echo "SSTATE_DIR ?= \"/home/xiongjian/compile/build_cache/sstate-cache\"" >> conf/local.conf
 grep -q "^RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"$" conf/local.conf || \
 echo "RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"" >> conf/local.conf
 grep -q "^PACKAGECONFIG_append_pn-qtbase = \" eglfs \"$" conf/local.conf || \
 echo "PACKAGECONFIG_append_pn-qtbase = \" eglfs \"" >> conf/local.conf
 
 # building image
-bitbake rpi-test-image
+bitbake rpi-basic-image
