@@ -9,7 +9,7 @@ env:
 
 # Action will return to the startup working directory every run
 jobs:
-  build:
+  job_build_base_img:
     runs-on: ubuntu-20.04
 
     steps:
@@ -65,9 +65,8 @@ jobs:
             git clone -b master git://git.yoctoproject.org/poky
             cd poky/
             git reset --hard 7ade8346b3a09983257589d22aaada47e0eec010
-            df -h
 
-      - name: Building targets
+      - name: Building base img
         run: |
             cd ${{ github.workspace }}/poky
             git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
@@ -77,16 +76,39 @@ jobs:
 
       - name: Check disk usage after build
         run: df -h
-
+  job_build_reterminal_img:
+    runs-on: ubuntu-20.04
+    needs: job_build_base_img
+    steps:
+      - name: Setup yocto reTerminal env
+        run: |
+          cd ${{ github.workspace }}/poky
+          source oe-init-build-env
+          bitbake-layers add-layer ../meta-seeed-reterminal
+          bitbake-layers add-layer ../meta-qt5
+          bitbake-layers add-layer ../meta-openembedded/meta-oe
+          bitbake-layers add-layer ../meta-openembedded/meta-python
+          echo "RPI_KERNEL_DEVICETREE_OVERLAYS_append = \" overlays/reTerminal.dtbo\"" >> conf/local.conf
+          echo "PACKAGECONFIG_append_pn-qtbase = \" eglfs \"" >> conf/local.conf
+        
+      - name: Building reterminal img
+        run: |
+          bitbake rpi-test-image
+        
+      - name: Check disk usage after build
+        run: df -h
+  job_pack_upload:
+    runs-on: ubuntu-20.04
+    needs: job_build_reterminal_img
+    steps:
       - name: Pack
         run: |
-            cd ${{ github.workspace }}/poky/build/tmp
-            tar -Jcf yocto-image.tar.xz deploy/images
-            echo "PACKAGE=${{ github.workspace }}/poky/build/tmp/yocto-image.tar.xz" >> $GITHUB_ENV
+          cd ${{ github.workspace }}/poky/build/tmp
+          tar -Jcf yocto-image.tar.xz deploy/images
+          echo "PACKAGE=${{ github.workspace }}/poky/build/tmp/yocto-image.tar.xz" >> $GITHUB_ENV
 
       - name: Upload package
         uses: actions/upload-artifact@master
         with:
           name: yocto deploy
           path: ${{env.PACKAGE}}
-
