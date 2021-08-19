@@ -2,7 +2,15 @@ INHERIT_append = " \
 	populate_sdk_qt5 \
 	"
 
+SPLASH = "psplash-raspberrypi"
+
+IMAGE_FEATURES_append = " \
+	ssh-server-dropbear \
+	splash \
+	"
+
 IMAGE_INSTALL_append = " \
+	kernel-modules \
 	kernel-module-mipi-dsi \
 	kernel-module-ltr30x \
 	kernel-module-lis3lv02d \

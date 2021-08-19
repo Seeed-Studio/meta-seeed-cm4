@@ -7,11 +7,6 @@ git clone -b master https://github.com/openembedded/openembedded-core.git
 
 source oe-init-build-env # in build dir
 
-# get the build cache
-wget files.seeedstudio.com/xiongj/sstate-cache.tar.gz
-tar zxvf sstate-cache.tar.gz
-rm sstate-cache.tar.gz
-
 bitbake-layers add-layer ../meta-raspberrypi
 bitbake-layers add-layer ../meta-seeed-reterminal
 bitbake-layers add-layer ../meta-qt5
@@ -30,4 +25,4 @@ grep -q "^PACKAGECONFIG_append_pn-qtbase = \" eglfs \"$" conf/local.conf || \
 echo "PACKAGECONFIG_append_pn-qtbase = \" eglfs \"" >> conf/local.conf
 
 # building image
-bitbake rpi-basic-image
+bitbake rpi-test-image
