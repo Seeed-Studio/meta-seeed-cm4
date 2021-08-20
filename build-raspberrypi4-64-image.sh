@@ -1,9 +1,12 @@
 #!/bin/bash
 
 git clone -b master https://github.com/agherzan/meta-raspberrypi.git
-git clone -b master https://github.com/meta-qt5/meta-qt5.git
-git clone -b master https://github.com/openembedded/meta-openembedded.git
-git clone -b master https://github.com/openembedded/openembedded-core.git
+#git clone -b master https://github.com/meta-qt5/meta-qt5.git
+#git clone -b master https://github.com/openembedded/meta-openembedded.git
+#git clone -b master https://github.com/openembedded/openembedded-core.git
+cd meta-raspberrypi/
+git reset --hard 8dc3a310883ea87cd9900442f46f20bb08e57583
+cd ..
 
 source oe-init-build-env # in build dir
 
