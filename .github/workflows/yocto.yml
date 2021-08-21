@@ -178,7 +178,8 @@ jobs:
         
       - name: Building reterminal img
         run: |
-          cd ${{ github.workspace }}/poky/build/
+          cd ${{ github.workspace }}/poky/
+          source oe-init-build-env
           bitbake rpi-test-image
         
       - name: Check disk usage after build
