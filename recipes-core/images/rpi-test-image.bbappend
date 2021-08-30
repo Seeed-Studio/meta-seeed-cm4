@@ -31,5 +31,7 @@ IMAGE_INSTALL_append = " \
 	python3-evdev \
 	evtest \
 	reterminalqt5example \
+	lvgl \
+	iperf3 \
 	"
 
