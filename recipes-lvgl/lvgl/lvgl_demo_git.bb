@@ -28,7 +28,7 @@ do_compile() {
 MY_DESTINATION1 = "/usr/bin"
 do_install() {
 	install -d ${D}${MY_DESTINATION1}
-	cp ${WORKDIR}/git/demo ${D}${MY_DESTINATION1}
+	cp ${WORKDIR}/git/demo ${D}${MY_DESTINATION1}/lvgl_demo
 }
 
 FILES_${PN} += "${MY_DESTINATION1}/*"
