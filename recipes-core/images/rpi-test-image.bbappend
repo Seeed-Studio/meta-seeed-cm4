@@ -33,5 +33,7 @@ IMAGE_INSTALL_append = " \
 	reterminalqt5example \
 	lvgl \
 	iperf3 \
+	i2c-tools \
+	util-linux \
 	"
 
