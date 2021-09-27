@@ -11,6 +11,6 @@ QT_MODULE_BRANCH = "dev"
 
 DEPENDS += "qtbase qtdeclarative qtquickcontrols2"
 
-SRCREV = "f6c319620574b3f99960f2a8d84b47b678d8f1ba"
+SRCREV = "6b97f7b0ac5083b1ed96a412a15b5be4faa43023"
 
 FILES_${PN} += "${libdir}/*"
