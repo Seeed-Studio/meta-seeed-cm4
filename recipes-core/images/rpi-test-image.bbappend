@@ -11,9 +11,7 @@ IMAGE_FEATURES:append = " \
 
 IMAGE_INSTALL:append = " \
 	kernel-modules \
-	kernel-module-mipi-dsi \
-	kernel-module-ltr30x \
-	kernel-module-lis3lv02d \
+	seeed-linux-dtoverlays \
 	qtbase \
 	qtbase-plugins \
 	qtbase-tools  \
