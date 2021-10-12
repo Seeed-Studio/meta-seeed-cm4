@@ -33,5 +33,7 @@ IMAGE_INSTALL:append = " \
 	iperf3 \
 	i2c-tools \
 	util-linux \
+	e2fsprogs-resize2fs \
+	parted \
 	"
 
