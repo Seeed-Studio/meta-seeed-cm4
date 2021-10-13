@@ -35,5 +35,7 @@ IMAGE_INSTALL_append = " \
 	util-linux \
 	e2fsprogs-resize2fs \
 	parted \
+	glibc \
+	v4l2-test-git \
 	"
 
