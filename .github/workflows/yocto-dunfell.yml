@@ -1,0 +1,195 @@
+name: Seeed reTerminal Yocto firmware(dunfell)
+
+on:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+
+# Action will return to the startup working directory every run
+jobs:
+  job_build_base_img:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Initialization environment
+        run: |
+          sudo apt-get remove aria2 ansible shellcheck rpm xorriso zsync \
+          clang-6.0 lldb-6.0 lld-6.0 clang-format-6.0 clang-8 lldb-8 lld-8 clang-format-8 \
+          clang-9 lldb-9 lld-9 clangd-9 clang-format-9 \
+          esl-erlang gfortran-8 gfortran-9 \
+          cabal-install-2.0 cabal-install-2.2 \
+          cabal-install-2.4 cabal-install-3.0 cabal-install-3.2 heroku imagemagick \
+          libmagickcore-dev libmagickwand-dev libmagic-dev ant ant-optional kubectl \
+          mercurial apt-transport-https mono-complete mysql-client libmysqlclient-dev \
+          mysql-server mssql-tools unixodbc-dev yarn bazel chrpath libssl-dev libxft-dev \
+          libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev \
+          php-zmq snmp pollinate libpq-dev postgresql-client ruby-full \
+          sphinxsearch subversion mongodb-org -yq >/dev/null 2>&1 \
+          || echo "failed main apt-get remove"
+          echo "Removing large packages"
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get clean
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get autoclean -y >/dev/null 2>&1
+          #echo "https://github.com/actions/virtual-environments/issues/709"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "remove big /usr/local"
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/local/lib/android >/dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/sdk > /dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/shared > /dev/null 2>&1
+          sudo rm -rf /usr/share/swift > /dev/null 2>&1
+          sudo -E apt-get -qq update
+          sudo -E apt-get install gawk wget git-core diffstat unzip texinfo gcc-multilib build-essential \
+                chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping \
+                python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3 xterm python3-subunit mesa-common-dev
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo timedatectl set-timezone "$TZ"
+      
+      - name: Check disk usage before build
+        run: df -h
+        
+      - name: Setup yocto
+        run: |
+            cd ${{ github.workspace }}
+            git clone -b master git://git.yoctoproject.org/poky
+            cd poky/
+            cp -r meta/recipes-multimedia/gstreamer/ ../
+            git checkout dunfell
+            rm -r meta/recipes-multimedia/gstreamer/
+            cp -r ../gstreamer/ meta/recipes-multimedia/
+            rm -r ../gstreamer/
+            git diff .
+
+      - name: Building basic img
+        run: |
+            cd ${{ github.workspace }}/poky
+            git clone -b dunfell https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+            cp meta-seeed-reterminal/build-*.sh ./
+            chmod +x build-*.sh
+            ./build-basic-image.sh
+
+      - name: Check disk usage after build
+        run: df -h
+
+      - uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ${{ github.workspace }}/poky/build/sstate-cache/
+          key: ${{ github.sha }} 
+  job_build_reterminal_img:
+    runs-on: ubuntu-20.04
+    needs: job_build_base_img
+    steps:
+      - name: Initialization environment
+        run: |
+          sudo apt-get remove aria2 ansible shellcheck rpm xorriso zsync \
+          clang-6.0 lldb-6.0 lld-6.0 clang-format-6.0 clang-8 lldb-8 lld-8 clang-format-8 \
+          clang-9 lldb-9 lld-9 clangd-9 clang-format-9 \
+          esl-erlang gfortran-8 gfortran-9 \
+          cabal-install-2.0 cabal-install-2.2 \
+          cabal-install-2.4 cabal-install-3.0 cabal-install-3.2 heroku imagemagick \
+          libmagickcore-dev libmagickwand-dev libmagic-dev ant ant-optional kubectl \
+          mercurial apt-transport-https mono-complete mysql-client libmysqlclient-dev \
+          mysql-server mssql-tools unixodbc-dev yarn bazel chrpath libssl-dev libxft-dev \
+          libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev \
+          php-zmq snmp pollinate libpq-dev postgresql-client ruby-full \
+          sphinxsearch subversion mongodb-org -yq >/dev/null 2>&1 \
+          || echo "failed main apt-get remove"
+          echo "Removing large packages"
+          sudo apt-get remove -y '^ghc-8.*'
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get remove -y azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get clean
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get autoclean -y >/dev/null 2>&1
+          #echo "https://github.com/actions/virtual-environments/issues/709"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "remove big /usr/local"
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/local/lib/android >/dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/sdk > /dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/shared > /dev/null 2>&1
+          sudo rm -rf /usr/share/swift > /dev/null 2>&1
+          sudo -E apt-get -qq update
+          sudo -E apt-get install gawk wget git-core diffstat unzip texinfo gcc-multilib build-essential \
+                chrpath socat cpio python3 python3-pip python3-pexpect xz-utils debianutils iputils-ping \
+                python3-git python3-jinja2 libegl1-mesa libsdl1.2-dev pylint3 xterm python3-subunit mesa-common-dev
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          sudo timedatectl set-timezone "$TZ"
+
+      - uses: actions/cache@v2
+        id: restore-build
+        with:
+          path: ${{ github.workspace }}/poky/build/sstate-cache/
+          key: ${{ github.sha }}
+
+      - name: move sstate-cache to ${{ github.workspace }}
+        run: |
+          cd ${{ github.workspace }}
+          mv poky/build/sstate-cache/ ./
+          rm -rf poky/
+
+      - name: Check disk usage after build
+        run: df -h
+
+      - name: Setup yocto for reterminal
+        run: |
+            cd ${{ github.workspace }}
+            git clone -b master git://git.yoctoproject.org/poky
+            cd poky/
+            cp -r meta/recipes-multimedia/gstreamer/ ../
+            git checkout dunfell
+            rm -r meta/recipes-multimedia/gstreamer/
+            cp -r ../gstreamer/ meta/recipes-multimedia/
+            rm -r ../gstreamer/
+            git diff .
+
+      - name: Setup yocto reTerminal env
+        run: |
+            cd ${{ github.workspace }}/poky
+            git clone -b dunfell https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+            cp meta-seeed-reterminal/build-*.sh ./
+            rm -rf meta-seeed-reterminal/
+            chmod +x build-*.sh
+            ./build-reterminal-image.sh
+
+
+      - name: move sstate-cache into ${{ github.workspace }}/poky/build/
+        run: |
+          cd ${{ github.workspace }}
+          mv sstate-cache/ poky/build/
+        
+      - name: Building reterminal img
+        run: |
+          cd ${{ github.workspace }}/poky/
+          source oe-init-build-env
+          bitbake rpi-test-image
+        
+      - name: Check disk usage after build
+        run: df -h
+
+      - name: Pack
+        run: |
+          cd ${{ github.workspace }}/poky/build/tmp
+          tar -Jcf yocto-image.tar.xz deploy/images
+          echo "PACKAGE=${{ github.workspace }}/poky/build/tmp/yocto-image.tar.xz" >> $GITHUB_ENV
+
+      - name: Upload package
+        uses: actions/upload-artifact@master
+        with:
+          name: yocto deploy
+          path: ${{env.PACKAGE}}
