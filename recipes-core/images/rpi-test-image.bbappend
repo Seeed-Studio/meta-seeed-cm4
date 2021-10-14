@@ -37,5 +37,7 @@ IMAGE_INSTALL_append = " \
 	parted \
 	glibc \
 	v4l2-test-git \
+	python3-pip \
+	spidev-test \
 	"
 
