@@ -39,5 +39,6 @@ IMAGE_INSTALL:append = " \
 	v4l2-test-git \
 	python3-pip \
 	spidev-test \
+	python3-seeed-python-reterminal \
 	"
 
