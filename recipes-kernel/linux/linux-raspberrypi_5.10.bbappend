@@ -9,6 +9,6 @@ do_configure_append(){
 		rm -r ${WORKDIR}/seeed/
 	fi
 	mkdir -p ${WORKDIR}/seeed/
-	git clone https://github.com/Seeed-Studio/seeed-linux-dtoverlays.git ${WORKDIR}/seeed/
-	cp ${WORKDIR}/seeed/overlays/rpi/reTerminal-overlay.dts ${S}/arch/arm/boot/dts/overlays/	
+	wget -P ${WORKDIR}/seeed/ https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reTerminal-overlay.dts
+	cp ${WORKDIR}/seeed/reTerminal-overlay.dts ${S}/arch/arm/boot/dts/overlays/	
 }
