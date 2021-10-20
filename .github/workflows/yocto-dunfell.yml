@@ -31,7 +31,6 @@ jobs:
           sphinxsearch subversion mongodb-org -yq >/dev/null 2>&1 \
           || echo "failed main apt-get remove"
           echo "Removing large packages"
-          sudo apt-get remove -y '^ghc-8.*'
           sudo apt-get remove -y '^dotnet-.*'
           sudo apt-get remove -y '^llvm-.*'
           sudo apt-get remove -y 'php.*'
@@ -59,7 +58,7 @@ jobs:
       - name: Check disk usage before build
         run: df -h
         
-      - name: Setup yocto
+      - name: Setup yocto (in order to compatible with meta-raspberrypi,change the gstreamer version of poky to the latest)
         run: |
             cd ${{ github.workspace }}
             git clone -b master git://git.yoctoproject.org/poky
@@ -107,7 +106,6 @@ jobs:
           sphinxsearch subversion mongodb-org -yq >/dev/null 2>&1 \
           || echo "failed main apt-get remove"
           echo "Removing large packages"
-          sudo apt-get remove -y '^ghc-8.*'
           sudo apt-get remove -y '^dotnet-.*'
           sudo apt-get remove -y '^llvm-.*'
           sudo apt-get remove -y 'php.*'
@@ -147,7 +145,7 @@ jobs:
       - name: Check disk usage after build
         run: df -h
 
-      - name: Setup yocto for reterminal
+      - name: Setup yocto (in order to compatible with meta-raspberrypi,change the gstreamer version of poky to the latest)
         run: |
             cd ${{ github.workspace }}
             git clone -b master git://git.yoctoproject.org/poky
