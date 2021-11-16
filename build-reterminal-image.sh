@@ -28,6 +28,7 @@ echo "PACKAGECONFIG_append_pn-qtbase = \" eglfs \"" >> conf/local.conf
 echo "DISTRO_FEATURES_remove = \" x11 wayland vulkan\"" >> conf/local.conf
 echo "KERNEL_MODULE_AUTOLOAD:rpi = \"i2c-dev\"" >> conf/local.conf
 echo "ENABLE_I2C = \"1\"" >> conf/local.conf
+echo "ENABLE_UART = \"1\"" >> conf/local.conf
 
 # we don't run start the compile here. 
 # because we need to copy the cache to build/ dir before we do that.
