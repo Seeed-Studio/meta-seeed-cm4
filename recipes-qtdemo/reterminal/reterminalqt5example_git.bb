@@ -10,7 +10,6 @@ SRCREV = "${AUTOREV}"
 
 SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples.git;protocol=git;branch=main \
 	file://S52qtdemo \
-	file://S51expand_file_system \
 	"
 
 S = "${WORKDIR}/git"
@@ -25,9 +24,6 @@ do_install() {
 		rm -r ${S}/imports/armv7l
 	fi
 	cp -r ${WORKDIR}/git/* ${D}${MY_DESTINATION}
-	install -d ${D}/etc/rc5.d/
-	cp ${WORKDIR}/S52qtdemo ${D}/etc/rc5.d/
-	cp ${WORKDIR}/S51expand_file_system ${D}/etc/rc5.d/
 }
 
 FILES_${PN} += "${MY_DESTINATION}/*"

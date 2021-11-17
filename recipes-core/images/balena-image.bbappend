@@ -29,16 +29,12 @@ IMAGE_INSTALL_append = " \
 	python3-evdev \
 	evtest \
 	reterminalqt5example \
-	lvgl \
 	iperf3 \
 	i2c-tools \
 	util-linux \
-	e2fsprogs-resize2fs \
-	parted \
 	glibc \
 	v4l2-test-git \
 	python3-pip \
 	spidev-test \
-	python3-seeed-python-reterminal \
 	"
 
