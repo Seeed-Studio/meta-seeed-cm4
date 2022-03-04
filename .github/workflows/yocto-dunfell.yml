@@ -58,17 +58,10 @@ jobs:
       - name: Check disk usage before build
         run: df -h
         
-      - name: Setup yocto (in order to compatible with meta-raspberrypi,change the gstreamer version of poky to the latest)
+      - name: Setup yocto 
         run: |
             cd ${{ github.workspace }}
-            git clone -b master git://git.yoctoproject.org/poky
-            cd poky/
-            cp -r meta/recipes-multimedia/gstreamer/ ../
-            git checkout dunfell
-            rm -r meta/recipes-multimedia/gstreamer/
-            cp -r ../gstreamer/ meta/recipes-multimedia/
-            rm -r ../gstreamer/
-            git diff .
+            git clone -b dunfell git://git.yoctoproject.org/poky
 
       - name: Building basic img
         run: |
@@ -145,17 +138,10 @@ jobs:
       - name: Check disk usage after build
         run: df -h
 
-      - name: Setup yocto (in order to compatible with meta-raspberrypi,change the gstreamer version of poky to the latest)
+      - name: Setup yocto
         run: |
             cd ${{ github.workspace }}
-            git clone -b master git://git.yoctoproject.org/poky
-            cd poky/
-            cp -r meta/recipes-multimedia/gstreamer/ ../
-            git checkout dunfell
-            rm -r meta/recipes-multimedia/gstreamer/
-            cp -r ../gstreamer/ meta/recipes-multimedia/
-            rm -r ../gstreamer/
-            git diff .
+            git clone -b dunfell git://git.yoctoproject.org/poky
 
       - name: Setup yocto reTerminal env
         run: |
