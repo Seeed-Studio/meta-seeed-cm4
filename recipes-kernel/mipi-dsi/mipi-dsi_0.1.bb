@@ -20,4 +20,4 @@ S = "${WORKDIR}"
 # The inherit of module.bbclass will automatically name module packages with
 # "kernel-module-" prefix as required by the oe-core build environment.
 
-RPROVIDES_${PN} += "kernel-module-mipi-dsi"
+RPROVIDES:${PN} += "kernel-module-mipi-dsi"

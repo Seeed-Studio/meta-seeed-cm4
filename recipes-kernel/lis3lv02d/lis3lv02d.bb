@@ -19,4 +19,4 @@ S = "${WORKDIR}"
 # The inherit of module.bbclass will automatically name module packages with
 # "kernel-module-" prefix as required by the oe-core build environment.
 
-RPROVIDES_${PN} += "kernel-module-lis3lv02d"
+RPROVIDES:${PN} += "kernel-module-lis3lv02d"

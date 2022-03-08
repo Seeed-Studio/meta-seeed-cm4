@@ -14,7 +14,7 @@ SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples.git;
 
 S = "${WORKDIR}/git"
 
-INSANE_SKIP_${PN} = "file-rdeps"
+INSANE_SKIP:${PN} = "file-rdeps"
 
 #MY_DESTINATION = "/home/root/Seeed_Python_ReTerminalQt5Examples"
 MY_DESTINATION = "/home/root/Seeed_Python_ReTerminalQt5Examples"
@@ -28,4 +28,4 @@ do_install() {
 	cp ${WORKDIR}/S21qtdemo ${D}/etc/rc5.d/
 }
 
-FILES_${PN} += "${MY_DESTINATION}/*"
+FILES:${PN} += "${MY_DESTINATION}/*"
