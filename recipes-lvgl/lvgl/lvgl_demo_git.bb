@@ -13,7 +13,7 @@ SRC_URI = "\
 	file://0002-fix-the-TP-point-rotation-of-reTerminal.patch \
 	"
 
-DEPENDS += "libinput eudev"
+DEPENDS += "libinput"
 
 S = "${WORKDIR}/git"
 
