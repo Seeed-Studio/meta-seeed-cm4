@@ -1,19 +1,17 @@
-INHERIT_append = " \
+INHERIT:append = " \
 	populate_sdk_qt5 \
 	"
 
 SPLASH = "psplash-raspberrypi"
 
-IMAGE_FEATURES_append = " \
+IMAGE_FEATURES:append = " \
 	ssh-server-dropbear \
 	splash \
 	"
 
-IMAGE_INSTALL_append = " \
+IMAGE_INSTALL:append = " \
 	kernel-modules \
-	kernel-module-mipi-dsi \
-	kernel-module-ltr30x \
-	kernel-module-lis3lv02d \
+	seeed-linux-dtoverlays \
 	qtbase \
 	qtbase-plugins \
 	qtbase-tools  \
@@ -35,5 +33,12 @@ IMAGE_INSTALL_append = " \
 	iperf3 \
 	i2c-tools \
 	util-linux \
+	e2fsprogs-resize2fs \
+	parted \
+	glibc \
+	v4l2-test-git \
+	python3-pip \
+	spidev-test \
+	python3-seeed-python-reterminal \
 	"
 

@@ -4,11 +4,10 @@
 #
 # MIT License
 #
-
 SRC := $(shell pwd)
 
-obj-m := als_ltr30x.o
-als_ltr30x-objs := ltr30x.o
+obj-m := lan7800.o
+lan7800-objs := lan78xx.o
 
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SRC)

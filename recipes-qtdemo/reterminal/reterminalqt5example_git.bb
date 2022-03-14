@@ -9,12 +9,13 @@ LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE;md5=1ebbd3e34237af26da5dc08a4e
 SRCREV = "${AUTOREV}"
 
 SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples.git;protocol=git;branch=main \
-	file://S21qtdemo \
+	file://S52qtdemo \
+	file://S51expand_file_system \
 	"
 
 S = "${WORKDIR}/git"
 
-INSANE_SKIP_${PN} = "file-rdeps"
+INSANE_SKIP:${PN} = "file-rdeps"
 
 #MY_DESTINATION = "/home/root/Seeed_Python_ReTerminalQt5Examples"
 MY_DESTINATION = "/home/root/Seeed_Python_ReTerminalQt5Examples"
@@ -25,7 +26,8 @@ do_install() {
 	fi
 	cp -r ${WORKDIR}/git/* ${D}${MY_DESTINATION}
 	install -d ${D}/etc/rc5.d/
-	cp ${WORKDIR}/S21qtdemo ${D}/etc/rc5.d/
+	cp ${WORKDIR}/S52qtdemo ${D}/etc/rc5.d/
+	cp ${WORKDIR}/S51expand_file_system ${D}/etc/rc5.d/
 }
 
-FILES_${PN} += "${MY_DESTINATION}/*"
+FILES:${PN} += "${MY_DESTINATION}/*"

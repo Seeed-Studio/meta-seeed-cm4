@@ -1,0 +1,50 @@
+From aa37a7e0d81c1d4a8defcfa33411707e026781c3 Mon Sep 17 00:00:00 2001
+From: Stephan Gerhold <stephan@gerhold.net>
+Date: Thu, 7 Jan 2021 17:51:31 +0100
+Subject: [PATCH] ASoC: hdmi-codec: Fix return value in hdmi_codec_set_jack()
+
+Sound is broken on the DragonBoard 410c (apq8016_sbc) since 5.10:
+
+  hdmi-audio-codec hdmi-audio-codec.1.auto: ASoC: error at snd_soc_component_set_jack on hdmi-audio-codec.1.auto: -95
+  qcom-apq8016-sbc 7702000.sound: Failed to set jack: -95
+  ADV7533: ASoC: error at snd_soc_link_init on ADV7533: -95
+  hdmi-audio-codec hdmi-audio-codec.1.auto: ASoC: error at snd_soc_component_set_jack on hdmi-audio-codec.1.auto: -95
+  qcom-apq8016-sbc: probe of 7702000.sound failed with error -95
+
+This happens because apq8016_sbc calls snd_soc_component_set_jack() on
+all codec DAIs and attempts to ignore failures with return code -ENOTSUPP.
+-ENOTSUPP is also excluded from error logging in soc_component_ret().
+
+However, hdmi_codec_set_jack() returns -E*OP*NOTSUPP if jack detection
+is not supported, which is not handled in apq8016_sbc and soc_component_ret().
+Make it return -ENOTSUPP instead to fix sound and silence the errors.
+
+Cc: Cheng-Yi Chiang <cychiang@chromium.org>
+Cc: Srinivas Kandagatla <srinivas.kandagatla@linaro.org>
+Fixes: 55c5cc63ab32 ("ASoC: hdmi-codec: Use set_jack ops to set jack")
+Signed-off-by: Stephan Gerhold <stephan@gerhold.net>
+Acked-by: Nicolin Chen <nicoleotsuka@gmail.com>
+Link: https://lore.kernel.org/r/20210107165131.2535-1-stephan@gerhold.net
+Signed-off-by: Mark Brown <broonie@kernel.org>
+Upstream-Status: Backport [2a0435df963f996ca870a2 in 5.11.y]
+Signed-off-by: Peter A. Bigot <pab@pabigot.com>
+---
+ sound/soc/codecs/hdmi-codec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sound/soc/codecs/hdmi-codec.c b/sound/soc/codecs/hdmi-codec.c
+index b9e96d7ed00b..dba47920a596 100644
+--- a/sound/soc/codecs/hdmi-codec.c
++++ b/sound/soc/codecs/hdmi-codec.c
+@@ -836,7 +836,7 @@ static int hdmi_codec_set_jack(struct snd_soc_component *component,
+ 			       void *data)
+ {
+ 	struct hdmi_codec_priv *hcp = snd_soc_component_get_drvdata(component);
+-	int ret = -EOPNOTSUPP;
++	int ret = -ENOTSUPP;
+ 
+ 	if (hcp->hcd.ops->hook_plugged_cb) {
+ 		hcp->jack = jack;
+-- 
+2.25.1
+

@@ -1,0 +1,26 @@
+From 3a8286b03593f47e08a0180ce7b7f35d5553ca60 Mon Sep 17 00:00:00 2001
+From: bigbearishappy <953308023@qq.com>
+Date: Mon, 11 Oct 2021 05:49:21 +0000
+Subject: [PATCH] modify makefile for reterminal
+
+---
+ arch/arm/boot/dts/overlays/Makefile | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/boot/dts/overlays/Makefile b/arch/arm/boot/dts/overlays/Makefile
+index 44aedc149ff0..a6f769697e9c 100644
+--- a/arch/arm/boot/dts/overlays/Makefile
++++ b/arch/arm/boot/dts/overlays/Makefile
+@@ -239,7 +239,8 @@ dtbo-$(CONFIG_ARCH_BCM2835) += \
+ 	w1-gpio-pullup.dtbo \
+ 	w5500.dtbo \
+ 	wittypi.dtbo \
+-	wm8960-soundcard.dtbo
++	wm8960-soundcard.dtbo \
++	reTerminal.dtbo
+ 
+ targets += dtbs dtbs_install
+ targets += $(dtbo-y)
+-- 
+2.25.1
+

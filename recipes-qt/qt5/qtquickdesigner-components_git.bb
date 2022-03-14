@@ -13,4 +13,4 @@ DEPENDS += "qtbase qtdeclarative qtquickcontrols2"
 
 SRCREV = "f6c319620574b3f99960f2a8d84b47b678d8f1ba"
 
-FILES_${PN} += "${libdir}/*"
+FILES:${PN} += "${libdir}/*"
