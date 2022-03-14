@@ -1,17 +1,9 @@
 #!/bin/bash
 
-git clone -b dunfell https://github.com/Seeed-Studio/meta-seeed-reterminal.git
-git clone -b master git://git.yoctoproject.org/meta-raspberrypi
-git clone -b dunfell https://github.com/meta-qt5/meta-qt5.git
-git clone -b dunfell https://github.com/openembedded/meta-openembedded.git
-
-#change the kernel version to 5.10+
-cd meta-raspberrypi/
-cp -r recipes-kernel/linux/ ../
-git checkout dunfell
-rm -r recipes-kernel/linux/
-mv -f ../linux/ recipes-kernel/
-cd ..
+git clone -b honister https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+git clone -b honister git://git.yoctoproject.org/meta-raspberrypi
+git clone -b honister https://github.com/meta-qt5/meta-qt5.git
+git clone -b honister https://github.com/openembedded/meta-openembedded.git
 
 source oe-init-build-env # in build dir
 
