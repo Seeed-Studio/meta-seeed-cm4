@@ -1,4 +1,4 @@
-name: Seeed reTerminal Yocto firmware(dunfell)
+name: Seeed reTerminal Yocto firmware
 
 on:
   workflow_dispatch:
