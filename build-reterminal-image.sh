@@ -1,6 +1,6 @@
 #!/bin/bash
 
-git clone -b honister https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
 git clone -b honister git://git.yoctoproject.org/meta-raspberrypi
 git clone -b honister https://github.com/meta-qt5/meta-qt5.git
 git clone -b honister https://github.com/openembedded/meta-openembedded.git
