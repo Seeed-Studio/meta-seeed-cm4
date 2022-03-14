@@ -61,12 +61,12 @@ jobs:
       - name: Setup yocto 
         run: |
             cd ${{ github.workspace }}
-            git clone -b dunfell git://git.yoctoproject.org/poky
+            git clone -b honister git://git.yoctoproject.org/poky
 
       - name: Building basic img
         run: |
             cd ${{ github.workspace }}/poky
-            git clone -b dunfell https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+            git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
             cp meta-seeed-reterminal/build-*.sh ./
             chmod +x build-*.sh
             ./build-basic-image.sh
@@ -141,12 +141,12 @@ jobs:
       - name: Setup yocto
         run: |
             cd ${{ github.workspace }}
-            git clone -b dunfell git://git.yoctoproject.org/poky
+            git clone -b honister git://git.yoctoproject.org/poky
 
       - name: Setup yocto reTerminal env
         run: |
             cd ${{ github.workspace }}/poky
-            git clone -b dunfell https://github.com/Seeed-Studio/meta-seeed-reterminal.git
+            git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
             cp meta-seeed-reterminal/build-*.sh ./
             rm -rf meta-seeed-reterminal/
             chmod +x build-*.sh
