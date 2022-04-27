@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE;md5=6a91c33fdb9c2f0d4aeab7a112
 
 SRCREV = "${AUTOREV}"
 
-SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminal.git;protocol=git;branch=main \
+SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminal.git;protocol=https;branch=main \
 	file://S53python_symlink \
 	"
 
