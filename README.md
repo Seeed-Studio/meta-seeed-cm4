@@ -28,17 +28,18 @@ please see the github action files and build-*.sh
 
 ## branch main: 
 
-build-raspberrypi4-64-image.sh 
+build-basic-image.sh 
+build-reterminal-image.sh 
 .github/workflows/yocto.yml
 
 ## branch dunfell: 
 
 build-basic-image.sh 
 build-reterminal-image.sh 
-.github/workflows/yocto-dunfell.yml
+.github/workflows/yocto.yml
 
 After several hours of compiling.
-You can get the image in "build/tmp/deploy/images/raspberrypi4-64"
+You can get the image in "build/tmp/deploy/images/seeed-reterminal"
 with  .wic.bz2 suffix.
 
 # Image download
