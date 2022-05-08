@@ -11,7 +11,7 @@ KERNEL_VERSION = "${@get_kernelversion_file("${STAGING_KERNEL_BUILDDIR}")}"
 
 SRCREV = "${AUTOREV}"
 
-SRC_URI = "git://github.com/Seeed-Studio/seeed-linux-dtoverlays.git;protocol=git;branch=master \
+SRC_URI = "git://github.com/Seeed-Studio/seeed-linux-dtoverlays.git;protocol=https;branch=master \
 	file://0001-compatible-for-yocto.patch \
 	"
 
