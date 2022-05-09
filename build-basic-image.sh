@@ -1,7 +1,7 @@
 #!/bin/bash
 
-git clone -b honister https://github.com/openembedded/meta-openembedded.git
-git clone -b honister git://git.yoctoproject.org/meta-raspberrypi
+git clone -b kirkstone https://github.com/openembedded/meta-openembedded.git
+git clone -b kirkstone git://git.yoctoproject.org/meta-raspberrypi
 
 
 source oe-init-build-env # in build dir

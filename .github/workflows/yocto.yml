@@ -61,7 +61,7 @@ jobs:
       - name: Setup yocto 
         run: |
             cd ${{ github.workspace }}
-            git clone -b honister git://git.yoctoproject.org/poky
+            git clone -b kirkstone git://git.yoctoproject.org/poky
 
       - name: Building basic img
         run: |
@@ -141,7 +141,7 @@ jobs:
       - name: Setup yocto
         run: |
             cd ${{ github.workspace }}
-            git clone -b honister git://git.yoctoproject.org/poky
+            git clone -b kirkstone git://git.yoctoproject.org/poky
 
       - name: Setup yocto reTerminal env
         run: |
