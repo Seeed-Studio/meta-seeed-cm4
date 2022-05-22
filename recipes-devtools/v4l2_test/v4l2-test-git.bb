@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE;md5=9066664d7f93c1baec4a6e23f5
 SRCREV = "c16009ace9fd53bf7cf6d3ba465331466a47cf3e"
 
 SRC_URI = "\
-	git://github.com/bigbearishappy/v4l2_test.git;protocol=git;branch=main \
+	git://github.com/bigbearishappy/v4l2_test.git;protocol=https;branch=main \
 	"
 
 DEPENDS += "glibc"
