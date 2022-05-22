@@ -29,7 +29,7 @@ IMAGE_INSTALL:append = " \
 	python3-evdev \
 	evtest \
 	reterminalqt5example \
-	lvgl \
+	lvgl-demo \
 	iperf3 \
 	i2c-tools \
 	util-linux \

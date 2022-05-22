@@ -8,7 +8,7 @@ LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE;md5=802d3d83ae80ef5f343050bf96
 SRCREV = "245161f37d63a538499c61f574c7943d29a89a5a"
 
 SRC_URI = "\
-	gitsm://github.com/lvgl/lv_port_linux_frame_buffer.git \
+	gitsm://github.com/lvgl/lv_port_linux_frame_buffer.git;protocol=https;branch=master \
 	file://0001-yocto-lvgl-display-input-rotate.patch \
 	file://0002-fix-the-TP-point-rotation-of-reTerminal.patch \
 	"
