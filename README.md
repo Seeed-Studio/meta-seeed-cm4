@@ -2,7 +2,7 @@ This README file contains information on the contents of the meta-seeed-retermin
 
 # Branch description
 
-branch main: meta-layer for the future LTS of yocto
+branch main: meta-layer for the future LTS of yocto(kirkstone for now)
 
 branch dunfell: meta-layer for the LTS dunfell of yocto
 
