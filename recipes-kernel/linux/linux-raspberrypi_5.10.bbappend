@@ -5,6 +5,7 @@ SRC_URI += " \
         file://0001-ASoC-hdmi-codec-Fix-return-value-in-hdmi_codec_set_j.patch \
         "
 
+do_configure[network] = "1"
 do_configure:append(){
         if [ -d ${WORKDIR}/seeed/ ]; then
                 rm -r ${WORKDIR}/seeed/
