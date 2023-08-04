@@ -1,4 +1,13 @@
 #!/bin/bash
+### BEGIN INIT INFO
+# Provides:          expand_file_system
+# Required-Start:
+# Required-Stop:
+# Default-Start: 3
+# Default-Stop:
+# Short-Description: expand file system
+# Description:
+### END INIT INFO
 
 ROOT_PART="$(findmnt / -o source -n)"
 ROOT_DEV="/dev/$(lsblk -no pkname "$ROOT_PART")"

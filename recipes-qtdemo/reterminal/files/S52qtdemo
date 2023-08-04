@@ -1,11 +1,21 @@
-#!/bin/sh
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          qtdemo
+# Required-Start:
+# Required-Stop:
+# Default-Start: 4
+# Default-Stop:
+# Short-Description: qtdemo for seeed
+# Description:
+### END INIT INFO
 
 modprobe lis331dlh-i2c
 
+sleep 5
 echo "loading qt demo..."
 export QT_QPA_PLATFORM=eglfs
 export QT_QPA_EGLFS_ALWAYS_SET_MODE=1
 cd /home/root/Seeed_Python_ReTerminalQt5Examples/src/
-python3 main.py &
+python3 main.py
 echo "qt demo start ok!"
 

@@ -1,0 +1,12 @@
+[Unit]
+Description= qtdemo for reterminal plus
+After=network.target
+
+[Service]
+Restart=on-failure
+RestartSec=1s
+User=root
+ExecStart=/var/S52qtdemo
+
+[Install]
+WantedBy=multi-user.target
