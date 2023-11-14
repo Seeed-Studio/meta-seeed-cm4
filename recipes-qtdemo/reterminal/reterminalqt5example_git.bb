@@ -28,14 +28,19 @@ do_install() {
 	fi
 	cp -r ${WORKDIR}/git/* ${D}${MY_DESTINATION}
 
-	# install qtdemo start script
+	# install qtdemo start script for systemd
 	install -d ${D}/var
 	install -m 0755 ${WORKDIR}/S52qtdemo ${D}/var
 	install -m 0755 ${WORKDIR}/S51expand_file_system ${D}/var
 
 	# install qtdemo start service
 	install -d ${D}${systemd_unitdir}/system/
-    install -m 0644 ${WORKDIR}/seeed_qtdemo.service ${D}${systemd_unitdir}/system/
+        install -m 0644 ${WORKDIR}/seeed_qtdemo.service ${D}${systemd_unitdir}/system/
+
+	# install qtdemo start script for sysvinit
+	install -d ${D}/etc/rc5.d/
+	cp ${WORKDIR}/S52qtdemo ${D}/etc/rc5.d/
+	cp ${WORKDIR}/S51expand_file_system ${D}/etc/rc5.d/
 }
 
 FILES:${PN} += "${MY_DESTINATION}/*"
