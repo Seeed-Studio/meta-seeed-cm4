@@ -2,14 +2,12 @@
 
 git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
 git clone -b kirkstone git://git.yoctoproject.org/meta-raspberrypi
-git clone -b kirkstone https://github.com/meta-qt5/meta-qt5.git
 git clone -b kirkstone https://github.com/openembedded/meta-openembedded.git
 
 source oe-init-build-env # in build dir
 
 bitbake-layers add-layer ../meta-raspberrypi
 bitbake-layers add-layer ../meta-seeed-reterminal
-bitbake-layers add-layer ../meta-qt5
 bitbake-layers add-layer ../meta-openembedded/meta-oe
 bitbake-layers add-layer ../meta-openembedded/meta-python
 
