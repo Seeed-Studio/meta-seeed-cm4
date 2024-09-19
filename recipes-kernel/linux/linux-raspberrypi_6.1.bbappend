@@ -28,6 +28,11 @@ do_configure:append(){
             wget -P ${WORKDIR}/seeed/ \
                 https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R100x-overlay.dts
             cp ${WORKDIR}/seeed/reComputer-R100x-overlay.dts ${S}/arch/arm/boot/dts/overlays/
+        elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r110x-mender', 'true', 'false', d)} \
+            || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r110x', 'true', 'false', d)}; then
+            wget -P ${WORKDIR}/seeed/ \
+                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R110x-overlay.dts
+            cp ${WORKDIR}/seeed/reComputer-R110x-overlay.dts ${S}/arch/arm/boot/dts/overlays/
         else
             bbdebug 1 "No target device tree specified, check your MACHINE config"
         fi
