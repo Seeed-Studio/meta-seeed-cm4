@@ -5,9 +5,9 @@ do_deploy:append() {
     grep -q "^enable_uart=1$" $CONFIG || echo "enable_uart=1" >> $CONFIG
     grep -q "^dtparam=spi=on$" $CONFIG || echo "dtparam=spi=on" >> $CONFIG
     
-    if ${@bb.utils.contains('MACHINE', 'seeed-reterminal-plus', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-plus-mender', 'true', 'false', d)}; then
-        grep -q "^dtoverlay=reTerminal-plus$" $CONFIG || echo "dtoverlay=reTerminal-plus" >> $CONFIG
+    if ${@bb.utils.contains('MACHINE', 'seeed-reterminal-DM', 'true', 'false', d)} \
+        || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-DM-mender', 'true', 'false', d)}; then
+        grep -q "^dtoverlay=reTerminal-DM$" $CONFIG || echo "dtoverlay=reTerminal-DM" >> $CONFIG
         grep -q "^dtparam=i2c_vc=on$" $CONFIG || echo "dtparam=i2c_vc=on" >> $CONFIG
         grep -q "^dtoverlay=i2c3,pins_4_5$" $CONFIG || echo "dtoverlay=i2c3,pins_4_5" >> $CONFIG
     elif ${@bb.utils.contains('MACHINE', 'seeed-reterminal', 'true', 'false', d)} \
