@@ -11,11 +11,11 @@ do_configure:append(){
                 rm -r ${WORKDIR}/seeed/
         fi
         mkdir -p ${WORKDIR}/seeed/
-        if ${@bb.utils.contains('MACHINE', 'seeed-reterminal-plus', 'true', 'false', d)} \
-            || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-plus-mender', 'true', 'false', d)}; then
+        if ${@bb.utils.contains('MACHINE', 'seeed-reterminal-DM', 'true', 'false', d)} \
+            || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-DM-mender', 'true', 'false', d)}; then
             wget -P ${WORKDIR}/seeed/ \
-                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reTerminal-plus-overlay.dts
-            cp ${WORKDIR}/seeed/reTerminal-plus-overlay.dts ${S}/arch/arm/boot/dts/overlays/
+                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reTerminal-DM-overlay.dts
+            cp ${WORKDIR}/seeed/reTerminal-DM-overlay.dts ${S}/arch/arm/boot/dts/overlays/
         elif ${@bb.utils.contains('MACHINE', 'seeed-reterminal', 'true', 'false', d)} \
             || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-mender', 'true', 'false', d)} \
             || ${@bb.utils.contains('MACHINE', 'dual-gbe-cm4', 'true', 'false', d)} \
