@@ -1,19 +1,22 @@
-# Override SRCREV to use latest commit from rpi-6.12.y branch
-# This fixes the issue where the original recipe references a non-existent commit
+FILESEXTRAPATHS:prepend := "${THISDIR}/files:"
 
-# Use AUTOREV to always get the latest commit from the branch
-SRCREV_machine = "${AUTOREV}"
+KBUILD_DEFCONFIG:seeed-recomputer-r2x ?= "bcm2712_defconfig"
 
-# Also use AUTOREV for meta to ensure compatibility
-SRCREV_meta = "${AUTOREV}"
+do_configure[network] = "1"
+do_configure:append(){
+        if [ -d ${WORKDIR}/seeed/ ]; then
+                rm -r ${WORKDIR}/seeed/
+        fi
+        mkdir -p ${WORKDIR}/seeed/
+        if ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)}; then
+            wget -P ${WORKDIR}/seeed/ \
+                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R2x-overlay.dts
+            cp ${WORKDIR}/seeed/reComputer-R2x-overlay.dts ${S}/arch/arm/boot/dts/overlays/
 
-# Skip kernel version sanity check since we're using AUTOREV
-# This allows us to use the latest kernel without version mismatch errors
-KERNEL_VERSION_SANITY_SKIP = "1"
-
-# Set warning only for dangling features to avoid build failures
-# This allows the build to continue even if some kernel config features are missing
-KERNEL_DANGLING_FEATURES_WARN_ONLY = "1"
-
-# Alternatively, you can update the kernel version to match the latest
-# LINUX_VERSION = "6.12.41"
+            wget -P ${WORKDIR}/seeed/ \
+                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R21-overlay.dts
+            cp ${WORKDIR}/seeed/reComputer-R21-overlay.dts ${S}/arch/arm/boot/dts/overlays/
+        else
+            bbdebug 1 "No target device tree specified, check your MACHINE config"
+        fi
+}

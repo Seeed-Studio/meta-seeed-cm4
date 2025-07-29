@@ -8,29 +8,32 @@ repos:
   poky:
     path: layers/poky
     branch: scarthgap
-  
+
   meta-openembedded:
     path: layers/meta-openembedded
     branch: scarthgap
-  
+    layers:
+      meta-oe:
+      meta-python:
+
   meta-mender:
     path: layers/meta-mender
     branch: scarthgap
-  
+
   meta-raspberrypi:
     path: layers/meta-raspberrypi
-    branch: scarthgap
-  
+    branch: 1f2045321afd6ef20b457266ac3e97c8577eb1c4
+
   meta-lts-mixins:
     path: layers/meta-lts-mixins
     commit: a44882db02a0ed0f149371831bfbe067665eb42b
-  
+
   meta-mender-community:
     path: layers/meta-mender-community
     branch: scarthgap
     layers:
       meta-mender-raspberrypi:
-  
+
   meta-seeed-cm4:
     path: layers/meta-seeed-cm4
     branch: main
@@ -38,43 +41,44 @@ repos:
 machine: seeed-recomputer-r2x-mender
 
 local_conf_header:
-  mender-full: |
-    INHERIT += "mender-full"
-  
-  raspberrypi: |
-    RPI_USE_U_BOOT = "1"
-    ENABLE_UART = "1"
-    MENDER_BOOT_PART_SIZE_MB = "100"
-    IMAGE_INSTALL:append = " kernel-image kernel-devicetree userlandtools"
-    IMAGE_FSTYPES:remove = " rpi-sdimg"
-  
+  global-config: |
+    INIT_MANAGER = "systemd"
+    LICENSE_FLAGS_ACCEPTED = "synaptics-killswitch"
+    INHERIT:remove = "create-spdx"
+
+    INHERIT += "extrausers"
+    EXTRA_USERS_PARAMS += "useradd -p '\$5\$pmVNMCh/FWO/AF/B\$jT5iwidXqo07gE4pzXYloi5kxgeO1V2afd66LL8vcd0' recomputer;"
+
   seeed-recomputer-r2x: |
     # Seeed reComputer R2x specific configurations (Raspberry Pi 5 based)
     PREFERRED_VERSION_linux-raspberrypi ?= "6.12%"
-    
-    # Device tree overlays for reComputer R2x (from kernel source)
-    RPI_KERNEL_DEVICETREE_OVERLAYS:append = " overlays/i2c0.dtbo overlays/i2c1.dtbo overlays/i2c3.dtbo overlays/i2c6.dtbo"
-    
-    # Enable I2C and UART
     KERNEL_MODULE_AUTOLOAD:rpi += "i2c-dev"
-    ENABLE_I2C = "1"
-    ENABLE_UART = "1"
-    
-    # Install required packages including seeed-linux-dtoverlays and grub-editenv
-    IMAGE_INSTALL:append = " seeed-linux-dtoverlays grub-editenv userlandtools recomputer-r2x-detection"
-    
+
+    # Install required packages
+    IMAGE_INSTALL:append = " e2fsprogs-resize2fs parted util-linux sudo"
+    IMAGE_INSTALL:append = " net-tools iproute2"
+    IMAGE_INSTALL:append = " spidev-test can-utils watchdog minicom"
+    IMAGE_INSTALL:append = " hailo-firmware libhailort-dev hailortcli"
+    IMAGE_INSTALL:append = " \
+        python3-pip \
+        python3-psutil \
+        python3-logging \
+        python3-pycairo \
+        python3-pygobject \
+        python3-seeed-python-reterminal \
+        "
+
+    IMAGE_INSTALL:append = " \
+        protobuf protobuf-compiler \
+        opencv-dev opencv-staticdev \
+        git cmake \
+        tmux vim \
+        dpkg pkgconfig \
+        wget curl \
+        "
+
     # Enable SSH server with openssh
-    IMAGE_FEATURES:append = " ssh-server-openssh"
-    
-    # Copy reComputer-R2x.dtbo to boot partition overlays directory
-    # This ensures the dtbo file is available in the boot partition for bootloader to load
-    IMAGE_BOOT_FILES:append = " reComputer-R2x.dtbo;overlays/reComputer-R2x.dtbo reComputer-R21.dtbo;overlays/reComputer-R21.dtbo"
-    # Mender specific configurations for reComputer R2x
-    MENDER_ARTIFACT_NAME = "recomputer-r2x-release-1"
-    MENDER_BOOT_PART_SIZE_MB = "100"
-    MENDER_STORAGE_TOTAL_SIZE_MB = "2048"
-    MENDER_FEATURES_ENABLE:append = " mender-uboot mender-image-sd"
-    MENDER_FEATURES_DISABLE:append = " mender-grub mender-image-uefi"
+    IMAGE_FEATURES:append = " ssh-server-openssh splash tools-sdk"
 
 target:
-  - core-image-minimal
+  - core-image-base
