@@ -1,0 +1,25 @@
+From 932b9893511777d9acdd7ebaef0f81f259723680 Mon Sep 17 00:00:00 2001
+From: is-qian <tangruiqian17@gmail.com>
+Date: Fri, 19 Jul 2024 15:30:14 +0800
+Subject: [PATCH] fix the compilation error for rtc-pcf563w
+
+---
+ modules/rtc-pcf8563w/rtc-pcf8563w.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/rtc-pcf8563w/rtc-pcf8563w.c b/modules/rtc-pcf8563w/rtc-pcf8563w.c
+index bf82d70..3126b81 100644
+--- a/modules/rtc-pcf8563w/rtc-pcf8563w.c
++++ b/modules/rtc-pcf8563w/rtc-pcf8563w.c
+@@ -757,7 +757,7 @@ static int pcf8563_probe(struct i2c_client *client, const struct i2c_device_id *
+ 
+     pcf8563_watchdog_init(&client->dev, pcf8563);
+ 
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 1, 0)
++#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 1, 0)
+     err = rtc_register_device(pcf8563->rtc);
+ #else
+     err = devm_rtc_register_device(pcf8563->rtc);
+-- 
+2.43.0
+

@@ -1,9 +1,9 @@
 #!/bin/bash
 
-git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
-git clone -b kirkstone git://git.yoctoproject.org/meta-raspberrypi
-git clone -b kirkstone https://github.com/meta-qt5/meta-qt5.git
-git clone -b kirkstone https://github.com/openembedded/meta-openembedded.git
+git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git layers/meta-seeed-reterminal
+git clone -b scarthgap git://git.yoctoproject.org/meta-raspberrypi layers/meta-raspberrypi
+git clone -b scarthgap https://github.com/meta-qt5/meta-qt5.git layers/meta-qt5
+git clone -b scarthgap https://github.com/openembedded/meta-openembedded.git layers/meta-openembedded
 
 source oe-init-build-env # in build dir
 

@@ -1,19 +1,21 @@
 #!/bin/bash
 
-git clone -b main https://github.com/Seeed-Studio/meta-seeed-reterminal.git
-git clone -b kirkstone git://git.yoctoproject.org/meta-raspberrypi
-git clone -b kirkstone https://github.com/openembedded/meta-openembedded.git
-git clone -b kirkstone git://github.com/mendersoftware/meta-mender
+git clone -b scarthgap https://github.com/Seeed-Studio/meta-seeed-cm4.git layers/meta-seeed-cm4
+git clone -b scarthgap git://git.yoctoproject.org/meta-raspberrypi layers/meta-raspberrypi
+git clone -b scarthgap https://github.com/openembedded/meta-openembedded.git layers/meta-openembedded
+git clone -b scarthgap https://github.com/mendersoftware/meta-mender layers/meta-mender
+git clone -b scarthgap https://github.com/mendersoftware/meta-mender-community layers/meta-mender-community
+git clone -b scarthgap git://git.yoctoproject.org/poky.git layers/poky
 
-source oe-init-build-env # in build dir
+source layers/poky/oe-init-build-env # in build dir
 
-bitbake-layers add-layer ../meta-raspberrypi
-bitbake-layers add-layer ../meta-seeed-reterminal
-bitbake-layers add-layer ../meta-openembedded/meta-oe
-bitbake-layers add-layer ../meta-openembedded/meta-python
-bitbake-layers add-layer ../meta-mender/meta-mender-core
-bitbake-layers add-layer ../meta-mender/meta-mender-raspberrypi
-bitbake-layers add-layer ../meta-mender/meta-mender-demo
+bitbake-layers add-layer layers/meta-raspberrypi
+bitbake-layers add-layer layers/meta-seeed-cm4
+bitbake-layers add-layer layers/meta-openembedded/meta-oe
+bitbake-layers add-layer layers/meta-openembedded/meta-python
+bitbake-layers add-layer layers/meta-mender/meta-mender-core
+bitbake-layers add-layer layers/meta-mender-community/meta-mender-raspberrypi
+bitbake-layers add-layer layers/meta-mender/meta-mender-demo
 
 # modify local.conf to build raspberrypi4 64-bit system
 sed -i '/^MACHINE/s/= .*$/= "seeed-recomputer-r100x-mender"/g' conf/local.conf
