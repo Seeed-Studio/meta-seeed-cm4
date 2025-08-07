@@ -1,0 +1,95 @@
+header:
+  version: 14
+  includes:
+  - ../meta-mender-community/kas/include/mender-base.yml
+
+repos:
+  # Repository paths relative to workspace root
+  poky:
+    path: layers/poky
+    branch: scarthgap
+  
+  meta-openembedded:
+    path: layers/meta-openembedded
+    branch: scarthgap
+  
+  meta-mender:
+    path: layers/meta-mender
+    branch: scarthgap
+  
+  meta-raspberrypi:
+    path: layers/meta-raspberrypi
+    branch: scarthgap
+  
+  meta-lts-mixins:
+    path: layers/meta-lts-mixins
+    commit: a44882db02a0ed0f149371831bfbe067665eb42b
+  
+  meta-mender-community:
+    path: layers/meta-mender-community
+    branch: scarthgap
+    layers:
+      meta-mender-raspberrypi:
+  
+  meta-seeed-cm4:
+    path: layers/meta-seeed-cm4
+    branch: main
+
+machine: seeed-reterminal-mender
+
+local_conf_header:
+  mender-full: |
+    INHERIT += "mender-full"
+  
+  raspberrypi: |
+    RPI_USE_U_BOOT = "1"
+    ENABLE_UART = "1"
+    MENDER_BOOT_PART_SIZE_MB = "100"
+    IMAGE_INSTALL:append = " kernel-image kernel-devicetree"
+    IMAGE_FSTYPES:remove = " rpi-sdimg"
+  
+  cache_settings: |
+    # Cache directories for CI optimization
+    DL_DIR ?= "${TOPDIR}/downloads"
+    SSTATE_DIR ?= "${TOPDIR}/sstate-cache"
+    # Enable parallel downloads and builds
+    BB_NUMBER_THREADS ?= "8"
+    PARALLEL_MAKE ?= "-j 8"
+    # Enable network caching optimizations
+    BB_FETCH_PREMIRRORONLY = "0"
+    BB_GENERATE_MIRROR_TARBALLS = "1"
+    # Optimize for CI environment
+    BB_HASHSERVE = "auto"
+    BB_SIGNATURE_HANDLER = "OEEquivHash"
+  
+  seeed-reterminal: |
+    # Seeed reTerminal specific configurations
+    PREFERRED_VERSION_linux-raspberrypi ?= "6.12%"
+    
+    # Device tree overlays for reTerminal
+    RPI_KERNEL_DEVICETREE_OVERLAYS:append = " overlays/i2c0.dtbo overlays/i2c1.dtbo overlays/i2c3.dtbo overlays/i2c6.dtbo"
+    
+    # Enable I2C, SPI and UART for reTerminal
+    KERNEL_MODULE_AUTOLOAD:rpi += "i2c-dev spi-dev"
+    ENABLE_I2C = "1"
+    ENABLE_SPI = "1"
+    ENABLE_UART = "1"
+    
+    # Install seeed-linux-dtoverlays package for reTerminal specific overlays
+    IMAGE_INSTALL:append = " seeed-linux-dtoverlays"
+
+    # Enable SSH server with openssh
+    IMAGE_FEATURES:append = " ssh-server-openssh"
+    
+    # Copy reTerminal specific dtbo to boot partition overlays directory
+    IMAGE_BOOT_FILES:append = " reTerminal.dtbo;overlays/reTerminal.dtbo"
+    
+    # Mender specific configurations for reTerminal
+    MENDER_ARTIFACT_NAME = "reterminal-release-1"
+    MENDER_BOOT_PART_SIZE_MB = "64"
+    MENDER_STORAGE_TOTAL_SIZE_MB = "2048"
+    MENDER_FEATURES_ENABLE:append = " mender-uboot mender-image-sd"
+    MENDER_FEATURES_DISABLE:append = " mender-grub mender-image-uefi"
+
+target:
+  - core-image-minimal

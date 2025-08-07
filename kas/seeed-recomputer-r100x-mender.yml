@@ -4,7 +4,7 @@ header:
   - ../meta-mender-community/kas/include/mender-base.yml
 
 repos:
-  # Override repository paths to use local layers with correct branches
+  # Repository paths relative to workspace root
   poky:
     path: layers/poky
     branch: scarthgap

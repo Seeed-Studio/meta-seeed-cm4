@@ -1,0 +1,654 @@
+# ---------------------------------------------------------------------------
+#
+# GitHub Actions CI workflow for Seeed-Studio/meta-seeed-cm4
+# Based on Yocto build system with KAS automation and rclone sstate caching
+#
+# ---------------------------------------------------------------------------
+#
+# This workflow builds Yocto images for Seeed CM4 devices
+# using KAS configuration files with rclone for sstate caching
+# and uploads the final images to GitHub releases
+#
+# ---------------------------------------------------------------------------
+
+name: seeed-yocto-boards-build
+
+on:
+  workflow_dispatch:
+    inputs:
+      machine:
+        type: choice
+        description: 'Target device to build'
+        options:
+          - seeed-recomputer-r100x-mender
+          - seeed-reterminal-mender
+          - seeed-reterminal-DM-mender
+          - seeed-rerouter-cm4-mender
+        default: 'seeed-recomputer-r100x-mender'
+      build_type:
+        type: choice
+        description: 'Build type'
+        options:
+          - development
+          - production
+        default: 'development'
+      upload_release:
+        type: boolean
+        description: 'Upload to GitHub release'
+        default: true
+      clean_build:
+        type: boolean
+        description: 'Clean build (ignore sstate cache)'
+        default: false
+
+env:
+  LANG: "en_US.UTF-8"
+  DEBIAN_FRONTEND: noninteractive
+  VERBOSE: "1"
+  # Docker build configuration
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+
+jobs:
+  build-yocto-image:
+    name: Build Yocto Image with KAS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 480  # 8 hours timeout
+    
+    steps:
+      - name: Free disk space
+        run: |
+          sudo apt-get remove aria2 ansible shellcheck rpm xorriso zsync \
+          clang-6.0 lldb-6.0 lld-6.0 clang-format-6.0 clang-8 lldb-8 lld-8 clang-format-8 \
+          clang-9 lldb-9 lld-9 clangd-9 clang-format-9 \
+          esl-erlang gfortran-8 gfortran-9 \
+          cabal-install-2.0 cabal-install-2.2 \
+          cabal-install-2.4 cabal-install-3.0 cabal-install-3.2 heroku imagemagick \
+          libmagickcore-dev libmagickwand-dev libmagic-dev ant ant-optional kubectl \
+          mercurial apt-transport-https mono-complete mysql-client libmysqlclient-dev \
+          mysql-server mssql-tools unixodbc-dev yarn bazel chrpath libssl-dev libxft-dev \
+          libfreetype6 libfreetype6-dev libfontconfig1 libfontconfig1-dev \
+          php-zmq snmp pollinate libpq-dev postgresql-client ruby-full \
+          azure-cli google-cloud-sdk hhvm google-chrome-stable firefox powershell \
+          sphinxsearch subversion mongodb-org -yq >/dev/null 2>&1 \
+          || echo "failed main apt-get remove"
+          echo "Removing large packages"
+          sudo apt-get remove -y '^dotnet-.*'
+          sudo apt-get remove -y '^llvm-.*'
+          sudo apt-get remove -y 'php.*'
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get clean
+          sudo apt-get autoremove -y >/dev/null 2>&1
+          sudo apt-get autoclean -y >/dev/null 2>&1
+          #echo "https://github.com/actions/virtual-environments/issues/709"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "remove big /usr/local"
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf /usr/local/lib/android >/dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/sdk > /dev/null 2>&1
+          sudo rm -rf /usr/share/dotnet/shared > /dev/null 2>&1
+          sudo rm -rf /usr/share/swift > /dev/null 2>&1
+          sudo rm -rf /usr/local/.ghcup >/dev/null 2>&1 
+          sudo -E apt-get -qq update
+          sudo -E apt-get -y install git
+          sudo -E apt-get -qq autoremove --purge
+          sudo -E apt-get -qq clean
+          df -h
+
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 4096
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+      - name: Checkout meta-seeed-cm4 repository
+        uses: actions/checkout@v4
+        with:
+          path: meta-seeed-cm4
+          submodules: recursive
+          fetch-depth: 0
+          
+      - name: Setup workspace and clone dependencies
+        run: |
+          # Create workspace structure
+          mkdir -p layers
+          
+          # Move checked out meta-seeed-cm4 to layers directory
+          mv meta-seeed-cm4 layers/
+          
+          # Clone required layers with correct branches
+          echo "Cloning Poky..."
+          git clone -b scarthgap https://git.yoctoproject.org/poky layers/poky
+          
+          echo "Cloning meta-openembedded..."
+          git clone -b scarthgap git://git.openembedded.org/meta-openembedded.git layers/meta-openembedded
+          
+          echo "Cloning meta-raspberrypi..."
+          git clone -b scarthgap https://github.com/agherzan/meta-raspberrypi.git layers/meta-raspberrypi
+          
+          echo "Cloning meta-mender..."
+          git clone -b scarthgap https://github.com/mendersoftware/meta-mender.git layers/meta-mender
+          
+          echo "Cloning meta-mender-community..."
+          git clone -b scarthgap https://github.com/mendersoftware/meta-mender-community.git layers/meta-mender-community
+          
+          echo "Cloning meta-lts-mixins..."
+          git clone https://git.yoctoproject.org/meta-lts-mixins.git layers/meta-lts-mixins
+          cd layers/meta-lts-mixins
+          git checkout a44882db02a0ed0f149371831bfbe067665eb42b
+          cd ../..
+          
+          # Verify workspace structure
+          echo "Workspace structure:"
+          find layers -maxdepth 2 -type d | sort
+
+      - name: Set up build environment
+        run: |
+          # Install required packages
+          sudo apt-get install -y \
+            gawk wget git git-lfs diffstat unzip texinfo gcc build-essential \
+            chrpath socat cpio python3-pexpect xz-utils debianutils iputils-ping \
+            python3-git python3-pip python3-jinja2  libsdl1.2-dev pylint xterm \
+            python3-subunit zstd liblz4-tool file \
+            locales
+          
+          # Install KAS for Yocto build automation
+          sudo pip3 install kas
+          
+          # Configure locales
+          sudo locale-gen --purge "en_US.UTF-8"
+          sudo update-locale "LANG=en_US.UTF-8"
+          sudo dpkg-reconfigure --frontend noninteractive locales
+          
+          # Set up shell
+          sudo rm -f /bin/sh && sudo ln -s bash /bin/sh
+
+          # Add user to docker group
+          sudo usermod -aG docker $USER
+
+          #fix: ERROR: User namespaces are not usable by BitBake, possibly due to AppArmor.
+          sudo tee /etc/apparmor.d/bitbake << EOF
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile bitbake /**/bitbake/bin/bitbake flags=(unconfined) {
+            userns,
+          }
+          EOF
+          sudo apparmor_parser -r /etc/apparmor.d/bitbake          
+
+          # Check KAS installation
+          kas --version
+          
+          # Check space
+          echo "Checking available disk space..."
+          df -h || true
+
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          version: v1.67.0
+          rclone_config: ${{ secrets.RCLONE_CONFIG }}
+
+      - name: Get build information
+        id: build_info
+        run: |
+          # Get build timestamp
+          BUILD_DATE=$(date -u +"%Y-%m-%d_%H-%M-%S")
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_OUTPUT
+          
+          # Generate build ID
+          BUILD_ID="${{ inputs.machine }}_${BUILD_DATE}_${GITHUB_SHA:0:8}"
+          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_OUTPUT
+          
+          # Set image names based on machine
+          case "${{ inputs.machine }}" in
+            "seeed-recomputer-r100x-mender")
+              IMAGE_NAME="core-image-minimal-seeed-recomputer-r100x-mender"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
+              ;;
+            "seeed-reterminal-mender")
+              IMAGE_NAME="core-image-minimal-seeed-reterminal-mender"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-reterminal-mender.yml"
+              ;;
+            "seeed-reterminal-DM-mender")
+              IMAGE_NAME="core-image-minimal-seeed-reterminal-DM-mender"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-reterminal-DM-mender.yml"
+              ;;
+            "seeed-rerouter-cm4-mender")
+              IMAGE_NAME="core-image-minimal-seeed-rerouter-cm4-mender"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-rerouter-cm4-mender.yml"
+              ;;
+            *)
+              IMAGE_NAME="core-image-minimal-${{ inputs.machine }}"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
+              ;;
+          esac
+          echo "IMAGE_NAME=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "KAS_FILE=$KAS_FILE" >> $GITHUB_OUTPUT
+          
+          echo "Build ID: $BUILD_ID"
+          echo "Image name: $IMAGE_NAME"
+          echo "KAS file: $KAS_FILE"
+          
+          # Verify KAS file exists
+          if [ -f "$KAS_FILE" ]; then
+            echo "✓ KAS file found: $KAS_FILE"
+          else
+            echo "✗ KAS file not found: $KAS_FILE"
+            echo "Available KAS files:"
+            ls -la layers/meta-seeed-cm4/kas/ || echo "No kas directory found"
+          fi
+
+      - name: Setup sstate cache with rclone
+        if: ${{ !inputs.clean_build }}
+        run: |
+          # Create cache directories using KAS default paths
+          mkdir -p ${{ github.workspace }}/build/sstate-cache
+          mkdir -p ${{ github.workspace }}/build/downloads
+          
+          # Download sstate cache from remote storage
+          echo "Downloading sstate cache..."
+          rclone copy -P --stats 1m seeed-storage:yocto-cache/scarthgap/${{ inputs.machine }}.sstate-cache.tar \
+            ${{ github.workspace }}/ \
+            --transfers 8 --checkers 8 --fast-list --ignore-existing || echo "No existing sstate cache found"
+          
+          if [ -f "${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar" ]; then
+            echo "Extracting sstate cache..."
+            tar --no-same-owner -xf ${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar -C ${{ github.workspace }}/build/sstate-cache
+            rm -f ${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar
+          fi
+
+          # Download shared downloads
+          echo "Downloading shared downloads..."
+          rclone copy -P --stats 1m seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
+            ${{ github.workspace }}/ \
+            --transfers 8 --checkers 8 --fast-list --ignore-existing || echo "No existing downloads cache found"
+          
+          if [ -f "${{ github.workspace }}/yocto-download.tar" ]; then
+            echo "Extracting downloads cache..."
+            tar --no-same-owner -xf ${{ github.workspace }}/yocto-download.tar -C ${{ github.workspace }}/build/downloads
+            rm -f ${{ github.workspace }}/yocto-download.tar
+          fi
+          
+          echo "Cache setup completed"
+          du -sh ${{ github.workspace }}/build/sstate-cache || true
+          du -sh ${{ github.workspace }}/build/downloads || true
+          
+          # Record initial file timestamps for change detection (very important for cache tracking)
+          echo "Recording initial file timestamps for cache tracking..."
+          mkdir -p ${{ github.workspace }}/build/cache-tracking
+          
+          # Record sstate-cache files recursively
+          echo "Scanning sstate-cache directory..."
+          if [ -d "${{ github.workspace }}/build/sstate-cache" ]; then
+            find "${{ github.workspace }}/build/sstate-cache" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+            sstate_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt 2>/dev/null || echo 0)
+          else
+            touch ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+            sstate_count=0
+          fi
+          
+          # Record downloads files recursively  
+          echo "Scanning downloads directory..."
+          if [ -d "${{ github.workspace }}/build/downloads" ]; then
+            find "${{ github.workspace }}/build/downloads" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+            downloads_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt 2>/dev/null || echo 0)
+          else
+            touch ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+            downloads_count=0
+          fi
+          
+          echo "Initial sstate-cache files: $sstate_count"
+          echo "Initial downloads files: $downloads_count"
+          
+          # Show sample files for debugging
+          if [ "$sstate_count" -gt 0 ]; then
+            echo "Sample sstate-cache files:"
+            head -5 ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+          fi
+          if [ "$downloads_count" -gt 0 ]; then
+            echo "Sample downloads files:"
+            head -5 ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+          fi
+
+      # - name: Setup tmate session
+      #   uses: mxschmitt/action-tmate@v3
+
+      - name: Build Yocto image with KAS
+        continue-on-error: true
+        id: build_step
+        env:
+          KAS_WORK_DIR: ${{ github.workspace }}
+        run: |
+          echo "Using KAS file: ${{ steps.build_info.outputs.KAS_FILE }}"
+          echo "Starting Yocto build for ${{ inputs.machine }}"
+          echo "KAS Work Directory: $KAS_WORK_DIR"
+          
+          # Ensure build directory exists
+          mkdir -p ${{ github.workspace }}/build
+          
+          # Run KAS build directly with the device-specific configuration
+          echo "Running KAS build..."
+          kas build ${{ steps.build_info.outputs.KAS_FILE }}
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "=== BUILD FAILED with exit code $BUILD_EXIT_CODE ==="
+            echo "=== Last 100 lines of build log ==="
+            tail -100 build.log || echo "Could not read build log"
+            echo "=== Final disk usage ==="
+            df -h
+            echo "=== Build directory disk usage ==="
+            du -sh ${{ github.workspace }}/build/* 2>/dev/null || echo "Cannot access build directory"
+            echo "=== BitBake log files ==="
+            find ${{ github.workspace }}/build -name "log.*" -type f 2>/dev/null | head -5 || echo "No log files found"
+            exit $BUILD_EXIT_CODE
+          else
+            echo "Build completed successfully"
+            echo "=== Build artifacts ==="
+            find ${{ github.workspace }}/build/tmp/deploy/images -name "*.wic*" -o -name "*.img*" 2>/dev/null || echo "No image files found"
+          fi
+          
+
+      - name: Build failure diagnosis
+        if: steps.build_step.outcome == 'failure'
+        run: |
+          echo "=== BUILD FAILURE DIAGNOSIS ==="
+          echo "Build step failed, collecting diagnostic information..."
+          
+          echo "=== Current disk usage ==="
+          df -h
+          
+          echo "=== Docker system info ==="
+          docker system df 2>/dev/null || echo "Cannot get docker system info"
+          
+          echo "=== Large files in workspace ==="
+          find ${{ github.workspace }} -type f -size +100M 2>/dev/null | head -20 || echo "No large files found"
+          
+          echo "=== Build directory contents ==="
+          ls -la ${{ github.workspace }}/build/ 2>/dev/null || echo "Cannot access build directory"
+          
+          echo "=== KAS log files ==="
+          find ${{ github.workspace }}/build -name "*.log" -type f 2>/dev/null | head -10 || echo "No log files found"
+          
+          echo "=== Temporary directory usage ==="
+          du -sh ${{ github.workspace }}/build/tmp 2>/dev/null || echo "Cannot access tmp directory"
+          
+          echo "=== System memory info ==="
+          free -h
+          
+          echo "=== System load ==="
+          uptime
+          
+          echo "=== Recent system logs (errors) ==="
+          sudo journalctl --since "30 minutes ago" --priority=err --no-pager | tail -20 || echo "Cannot access system logs"
+          
+          echo "=== Docker container logs ==="
+          docker ps -a 2>/dev/null || echo "Cannot list docker containers"
+          
+          echo "Marking workflow as failed due to build failure"
+          exit 1
+
+      - name: Get Yocto build variables
+        if: steps.build_step.outcome == 'success'
+        id: yocto_vars
+        run: |
+          # Extract build information from Yocto
+          cd ${{ github.workspace }}/build
+          
+          # Try to get version information from build
+          if [ -f "conf/local.conf" ]; then
+            DISTRO_VERSION=$(grep -E "^DISTRO_VERSION" conf/local.conf | cut -d'"' -f2 || echo "unknown")
+            MACHINE_VERSION=$(grep -E "^MACHINE" conf/local.conf | cut -d'"' -f2 || echo "${{ inputs.machine }}")
+          else
+            DISTRO_VERSION="unknown"
+            MACHINE_VERSION="${{ inputs.machine }}"
+          fi
+          
+          echo "DISTRO_VERSION=$DISTRO_VERSION" >> $GITHUB_OUTPUT
+          echo "MACHINE_VERSION=$MACHINE_VERSION" >> $GITHUB_OUTPUT
+          echo "MACHINE=${{ inputs.machine }}" >> $GITHUB_OUTPUT
+          
+          echo "Distro Version: $DISTRO_VERSION"
+          echo "Machine Version: $MACHINE_VERSION"
+          echo "Machine: ${{ inputs.machine }}"
+
+      - name: Prepare release artifacts
+        if: steps.build_step.outcome == 'success'
+        id: artifacts
+        run: |
+          # Create release directory
+          mkdir -p ${{ github.workspace }}/release
+          
+          # Find and copy built images
+          DEPLOY_DIR="${{ github.workspace }}/build/tmp/deploy/images/${{ inputs.machine }}"
+          
+          if [ -d "$DEPLOY_DIR" ]; then
+            echo "Found deploy directory: $DEPLOY_DIR"
+            ls -la "$DEPLOY_DIR"
+            cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
+          fi
+          
+          # Create build information file
+          cat > ${{ github.workspace }}/release/build_info_${{ steps.build_info.outputs.BUILD_ID }}.txt << EOF
+          BUILD_ID=${{ steps.build_info.outputs.BUILD_ID }}
+          MACHINE=${{ inputs.machine }}
+          BUILD_TYPE=${{ inputs.build_type }}
+          BUILD_DATE=${{ steps.build_info.outputs.BUILD_DATE }}
+          COMMIT_SHA=${GITHUB_SHA}
+          COMMIT_REF=${GITHUB_REF}
+          DISTRO_VERSION=${{ steps.yocto_vars.outputs.DISTRO_VERSION }}
+          MACHINE_VERSION=${{ steps.yocto_vars.outputs.MACHINE_VERSION }}
+          GITHUB_RUN_ID=${GITHUB_RUN_ID}
+          GITHUB_RUN_NUMBER=${GITHUB_RUN_NUMBER}
+          EOF
+          
+          # List all artifacts
+          echo "Release artifacts:"
+          ls -la ${{ github.workspace }}/release/
+          
+          # Set outputs for release
+          echo "RELEASE_TAG=v${{ steps.build_info.outputs.BUILD_DATE }}-${{ inputs.machine }}" >> $GITHUB_OUTPUT
+          echo "RELEASE_NAME=Yocto Image for ${{ inputs.machine }} - ${{ steps.build_info.outputs.BUILD_DATE }}" >> $GITHUB_OUTPUT
+
+      - name: Upload artifacts as build artifacts
+        if: steps.build_step.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: yocto-${{ inputs.machine }}-${{ steps.build_info.outputs.BUILD_ID }}
+          path: ${{ github.workspace }}/release/
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: ${{ inputs.upload_release && steps.build_step.outcome == 'success' }}
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.artifacts.outputs.RELEASE_TAG }}
+          name: ${{ steps.artifacts.outputs.RELEASE_NAME }}
+          body: |
+            # Yocto Image Build for ${{ inputs.machine }}
+            
+            **Build Information:**
+            - Machine: `${{ inputs.machine }}`
+            - Build Type: `${{ inputs.build_type }}`
+            - Build Date: `${{ steps.build_info.outputs.BUILD_DATE }}`
+            - Commit: `${{ github.sha }}`
+            - Distro Version: `${{ steps.yocto_vars.outputs.DISTRO_VERSION }}`
+            - Machine Version: `${{ steps.yocto_vars.outputs.MACHINE_VERSION }}`
+            
+            **Files:**
+            This release contains the Yocto image for the ${{ inputs.machine }} device.
+            
+            **Installation:**
+            Flash the `.img` or `.wic` file to an SD card or eMMC storage using balenaEtcher, dd, or similar tools.
+            
+            ---
+            *Built with GitHub Actions using KAS automation*
+          draft: false
+          prerelease: ${{ inputs.build_type == 'development' }}
+          files: ${{ github.workspace }}/release/*
+
+      - name: Upload sstate cache with rclone
+        if: steps.build_step.outcome == 'success'
+        run: |
+          # Function to check if file changes exceed threshold
+          check_file_changes() {
+            local cache_type="$1"
+            local cache_dir="$2"
+            local initial_file="$3"
+            local threshold=20  # 20% threshold
+
+            mkdir -p "${{ github.workspace }}/build/cache-tracking"
+
+            # Get current file list
+            find "$cache_dir" -type f -printf "%T@ %p\n" 2>/dev/null > "${{ github.workspace }}/build/cache-tracking/${cache_type}-current.txt" || {
+              echo "Failed to scan current $cache_type files"
+              return 1
+            }
+            local current_file="${{ github.workspace }}/build/cache-tracking/${cache_type}-current.txt"
+
+            # Count files
+            local initial_count
+            initial_count=$(wc -l < "$initial_file" 2>/dev/null || echo 0)
+            local current_count
+            current_count=$(wc -l < "$current_file" 2>/dev/null || echo 0)
+
+            echo "Initial $cache_type files: $initial_count"
+            echo "Current $cache_type files: $current_count"
+
+            # If no initial files, always upload (new cache)
+            if [ "$initial_count" -eq 0 ]; then
+              echo "No initial $cache_type files, uploading new cache"
+              return 0
+            fi
+
+            # If no current files, skip upload (something went wrong)
+            if [ "$current_count" -eq 0 ]; then
+              echo "No current $cache_type files found, skipping upload"
+              return 1
+            fi
+
+            # New files: present in current but not in initial
+            local new_files
+            new_files=$(awk 'NR==FNR{seen[$2]=1; next} !($2 in seen){c++} END{print c+0}' "$initial_file" "$current_file")
+
+            # Modified files: same path exists but timestamp changed
+            local modified_files
+            modified_files=$(awk 'NR==FNR{ts[$2]=$1; next} ($2 in ts) && ($1!=ts[$2]){c++} END{print c+0}' "$initial_file" "$current_file")
+
+            local total_changes=$((new_files + modified_files))
+            local change_percentage=0
+            if [ "$initial_count" -gt 0 ]; then
+              change_percentage=$(( (total_changes * 100) / initial_count ))
+            fi
+
+            echo "New $cache_type files: $new_files"
+            echo "Modified $cache_type files: $modified_files"
+            echo "Total changes: $total_changes"
+            echo "Change percentage: $change_percentage%"
+
+            # Return 0 (upload) if changes exceed threshold, 1 (skip) otherwise
+            if [ "$change_percentage" -gt "$threshold" ]; then
+              echo "Changes ($change_percentage%) exceed threshold ($threshold%), will upload"
+              return 0
+            else
+              echo "Changes ($change_percentage%) below or equal to threshold ($threshold%), skipping upload"
+              return 1
+            fi
+          }
+          
+          # Upload updated sstate cache back to remote storage
+          echo "Checking sstate cache changes..."
+          if [ -d "${{ github.workspace }}/build/sstate-cache" ] && [ "$(ls -A ${{ github.workspace }}/build/sstate-cache)" ]; then
+            if check_file_changes "sstate-cache" "${{ github.workspace }}/build/sstate-cache" "${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt"; then
+              echo "Uploading sstate cache..."
+              if tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/build/${{ inputs.machine }}.sstate-cache.tar \
+                -C ${{ github.workspace }}/build/sstate-cache .; then
+                echo "sstate cache tarball created successfully"
+                if rclone copyto -P --stats 1m ${{ github.workspace }}/build/${{ inputs.machine }}.sstate-cache.tar \
+                  seeed-storage:yocto-cache/scarthgap/${{ inputs.machine }}.sstate-cache.tar \
+                  --update; then
+                  echo "sstate cache uploaded successfully"
+                else
+                  echo "⚠️ WARNING: Failed to upload sstate cache to remote storage"
+                  echo "This will not affect the build success, but may impact future build performance"
+                fi
+                rm -f ${{ github.workspace }}/build/${{ inputs.machine }}.sstate-cache.tar
+              else
+                echo "⚠️ WARNING: Failed to create sstate cache tarball"
+              fi
+            else
+              echo "Skipping sstate cache upload (insufficient changes)"
+            fi
+          else
+            echo "No sstate cache to upload"
+          fi
+          
+          # Upload downloads cache
+          echo "Checking downloads cache changes..."
+          if [ -d "${{ github.workspace }}/build/downloads" ] && [ "$(ls -A ${{ github.workspace }}/build/downloads)" ]; then
+            if check_file_changes "downloads" "${{ github.workspace }}/build/downloads" "${{ github.workspace }}/build/cache-tracking/downloads-initial.txt"; then
+              echo "Uploading downloads cache..."
+              if tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/build/yocto-download.tar \
+                -C ${{ github.workspace }}/build/downloads .; then
+                echo "downloads cache tarball created successfully"
+                if rclone copyto -P --stats 1m ${{ github.workspace }}/build/yocto-download.tar \
+                  seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
+                  --update; then
+                  echo "downloads cache uploaded successfully"
+                else
+                  echo "⚠️ WARNING: Failed to upload downloads cache to remote storage"
+                  echo "This will not affect the build success, but may impact future build performance"
+                fi
+                rm -f ${{ github.workspace }}/build/yocto-download.tar
+              else
+                echo "⚠️ WARNING: Failed to create downloads cache tarball"
+              fi
+            else
+              echo "Skipping downloads cache upload (insufficient changes)"
+            fi
+          else
+            echo "No downloads cache to upload"
+          fi
+          
+          echo "==============================================="
+          echo "Cache upload process completed"
+          echo "Note: Cache upload failures are non-critical and will not affect build success"
+          echo "==============================================="
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Machine**: ${{ inputs.machine }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Type**: ${{ inputs.build_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build ID**: ${{ steps.build_info.outputs.BUILD_ID }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Date**: ${{ steps.build_info.outputs.BUILD_DATE }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Distro Version**: ${{ steps.yocto_vars.outputs.DISTRO_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Machine Version**: ${{ steps.yocto_vars.outputs.MACHINE_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.upload_release }}" = "true" ]; then
+            echo "- **Release**: [${{ steps.artifacts.outputs.RELEASE_TAG }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.artifacts.outputs.RELEASE_TAG }})" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Artifacts" >> $GITHUB_STEP_SUMMARY
+          if [ -d "${{ github.workspace }}/release" ]; then
+            for file in ${{ github.workspace }}/release/*; do
+              if [ -f "$file" ]; then
+                filename=$(basename "$file")
+                size=$(ls -lh "$file" | awk '{print $5}')
+                echo "- \`$filename\` ($size)" >> $GITHUB_STEP_SUMMARY
+              fi
+            done
+          fi
+          
