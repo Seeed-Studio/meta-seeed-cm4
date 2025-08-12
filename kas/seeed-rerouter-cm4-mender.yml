@@ -45,7 +45,7 @@ local_conf_header:
     RPI_USE_U_BOOT = "1"
     ENABLE_UART = "1"
     MENDER_BOOT_PART_SIZE_MB = "100"
-    IMAGE_INSTALL:append = " kernel-image kernel-devicetree"
+    IMAGE_INSTALL:append = " kernel-image kernel-devicetree userlandtools"
     IMAGE_FSTYPES:remove = " rpi-sdimg"
   
   seeed-rerouter-cm4: |

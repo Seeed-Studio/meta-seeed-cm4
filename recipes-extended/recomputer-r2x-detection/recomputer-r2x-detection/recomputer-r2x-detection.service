@@ -1,0 +1,15 @@
+[Unit]
+Description=R21 Board Detect Service
+DefaultDependencies=no
+After=systemd-remount-fs.service systemd-tmpfiles-setup.service tmp.mount ldconfig.service
+Before=sysinit.target
+
+[Service]
+Type=oneshot
+ExecStart=#SBINDIR#/r21_board_detect.sh
+ExecStartPost=#BASE_BINDIR#/systemctl --no-reload disable run-postinsts.service
+RemainAfterExit=yes
+TimeoutSec=0
+
+[Install]
+WantedBy=sysinit.target
