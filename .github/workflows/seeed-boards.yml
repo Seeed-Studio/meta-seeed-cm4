@@ -32,9 +32,9 @@ on:
           - development
           - production
         default: 'development'
-      upload_release:
+      disable_upload_downloads:
         type: boolean
-        description: 'Upload to GitHub release'
+        description: 'Disable upload downloads cache'
         default: true
       clean_build:
         type: boolean
@@ -50,10 +50,232 @@ env:
   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
 
 jobs:
+  download-sstate-cache:
+    name: Download sstate cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    if: ${{ !inputs.clean_build }}
+    outputs:
+      cache-available: ${{ steps.cache_check.outputs.cache-available }}
+    
+    steps:
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          version: v1.67.0
+          rclone_config: ${{ secrets.RCLONE_CONFIG }}
+
+      - name: Download sstate cache
+        id: cache_check
+        run: |
+          echo "Downloading sstate cache for ${{ inputs.machine }}..."
+          
+          # Download sstate cache from remote storage
+          rclone copy -P --stats 1m seeed-storage:yocto-cache/scarthgap/${{ inputs.machine }}.sstate-cache.tar \
+            ${{ github.workspace }}/ \
+            --transfers 8 --checkers 8 --fast-list --ignore-existing
+          
+          if [ -f "${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar" ]; then
+            echo "cache-available=true" >> $GITHUB_OUTPUT
+            echo "sstate cache download completed"
+            ls -lh ${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar
+          else
+            echo "No sstate cache found for ${{ inputs.machine }}"
+            echo "cache-available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload sstate cache artifact
+        if: steps.cache_check.outputs.cache-available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sstate-cache-${{ inputs.machine }}
+          path: ${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar
+          retention-days: 1
+
+  download-shared-cache:
+    name: Download shared downloads cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    outputs:
+      downloads-available: ${{ steps.downloads_check.outputs.downloads-available || steps.fetchall_check.outputs.downloads-available }}
+    
+    steps:
+      - name: Checkout repository for fetchall
+        if: ${{ inputs.clean_build }}
+        uses: actions/checkout@v4
+        with:
+          path: meta-seeed-cm4
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up build environment for fetchall
+        if: ${{ inputs.clean_build }}
+        run: |
+          # Install required packages for Yocto build
+          sudo apt-get update
+          sudo apt-get install -y \
+            gawk wget git git-lfs diffstat unzip texinfo gcc build-essential \
+            chrpath socat cpio python3-pexpect xz-utils debianutils iputils-ping \
+            python3-git python3-pip python3-jinja2 libsdl1.2-dev pylint xterm \
+            python3-subunit zstd liblz4-tool file \
+            locales
+          
+          # Install KAS for Yocto build automation
+          sudo pip3 install kas
+          
+          # Configure locales
+          sudo locale-gen --purge "en_US.UTF-8"
+          sudo update-locale "LANG=en_US.UTF-8"
+          sudo dpkg-reconfigure --frontend noninteractive locales
+          
+          # Set up shell
+          sudo rm -f /bin/sh && sudo ln -s bash /bin/sh
+
+          #fix: ERROR: User namespaces are not usable by BitBake, possibly due to AppArmor.
+          sudo tee /etc/apparmor.d/bitbake << EOF
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile bitbake /**/bitbake/bin/bitbake flags=(unconfined) {
+            userns,
+          }
+          EOF
+          sudo apparmor_parser -r /etc/apparmor.d/bitbake
+
+      - name: Setup workspace for fetchall
+        if: ${{ inputs.clean_build }}
+        run: |
+          # Create workspace structure
+          mkdir -p layers
+          
+          # Move checked out meta-seeed-cm4 to layers directory
+          mv meta-seeed-cm4 layers/
+          
+          # Clone required layers with correct branches
+          echo "Cloning Poky..."
+          git clone -b scarthgap https://git.yoctoproject.org/poky layers/poky
+          
+          echo "Cloning meta-openembedded..."
+          git clone -b scarthgap git://git.openembedded.org/meta-openembedded.git layers/meta-openembedded
+          
+          echo "Cloning meta-raspberrypi..."
+          git clone -b scarthgap https://github.com/agherzan/meta-raspberrypi.git layers/meta-raspberrypi
+          
+          echo "Cloning meta-mender..."
+          git clone -b scarthgap https://github.com/mendersoftware/meta-mender.git layers/meta-mender
+          
+          echo "Cloning meta-mender-community..."
+          git clone -b scarthgap https://github.com/mendersoftware/meta-mender-community.git layers/meta-mender-community
+          
+          echo "Cloning meta-lts-mixins..."
+          git clone https://git.yoctoproject.org/meta-lts-mixins.git layers/meta-lts-mixins
+          cd layers/meta-lts-mixins
+          git checkout a44882db02a0ed0f149371831bfbe067665eb42b
+          cd ../..
+
+      - name: Yocto fetchall for clean build
+        if: ${{ inputs.clean_build }}
+        id: fetchall_check
+        env:
+          KAS_WORK_DIR: ${{ github.workspace }}
+        run: |
+          echo "Running Yocto fetchall for clean build..."
+          
+          # Set KAS file based on machine
+          case "${{ inputs.machine }}" in
+            "seeed-recomputer-r100x-mender")
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
+              ;;
+            "seeed-reterminal-mender")
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-reterminal-mender.yml"
+              ;;
+            "seeed-reterminal-DM-mender")
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-reterminal-DM-mender.yml"
+              ;;
+            "seeed-rerouter-cm4-mender")
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-rerouter-cm4-mender.yml"
+              ;;
+            *)
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
+              ;;
+          esac
+          
+          echo "Using KAS file: $KAS_FILE"
+          
+          # Verify KAS file exists
+          if [ ! -f "$KAS_FILE" ]; then
+            echo "ERROR: KAS file not found: $KAS_FILE"
+            echo "Available KAS files:"
+            ls -la layers/meta-seeed-cm4/kas/ || echo "No kas directory found"
+            exit 1
+          fi
+          
+          # Run fetchall using KAS to download all sources
+          echo "Starting fetchall process..."
+          kas shell $KAS_FILE -c "bitbake core-image-minimal --runall=fetch"
+          
+          # Check if downloads directory was populated
+          if [ -d "${{ github.workspace }}/build/downloads" ] && [ "$(ls -A ${{ github.workspace }}/build/downloads)" ]; then
+            echo "Fetchall completed successfully"
+            echo "Downloads directory size:"
+            du -sh ${{ github.workspace }}/build/downloads/
+            
+            # Create tar archive of downloads
+            echo "Creating downloads archive..."
+            tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/yocto-download.tar \
+              -C ${{ github.workspace }}/build/downloads .
+            
+            echo "downloads-available=true" >> $GITHUB_OUTPUT
+            echo "Downloads archive created: $(ls -lh ${{ github.workspace }}/yocto-download.tar)"
+          else
+            echo "Fetchall failed or no downloads found"
+            echo "downloads-available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Rclone
+        if: ${{ !inputs.clean_build }}
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          version: v1.67.0
+          rclone_config: ${{ secrets.RCLONE_CONFIG }}
+
+      - name: Download shared downloads
+        if: ${{ !inputs.clean_build }}
+        id: downloads_check
+        run: |
+          echo "Downloading shared downloads..."
+          
+          # Download shared downloads
+          rclone copy -P --stats 1m seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
+            ${{ github.workspace }}/ \
+            --transfers 8 --checkers 8 --fast-list --ignore-existing
+          
+          if [ -f "${{ github.workspace }}/yocto-download.tar" ]; then
+            echo "downloads-available=true" >> $GITHUB_OUTPUT
+            echo "Downloads cache download completed"
+            ls -lh ${{ github.workspace }}/yocto-download.tar
+          else
+            echo "No downloads cache found"
+            echo "downloads-available=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload downloads cache artifact
+        if: steps.downloads_check.outputs.downloads-available == 'true' || steps.fetchall_check.outputs.downloads-available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: downloads-cache
+          path: ${{ github.workspace }}/yocto-download.tar
+          retention-days: 1
+
   build-yocto-image:
     name: Build Yocto Image with KAS
     runs-on: ubuntu-24.04
     timeout-minutes: 480  # 8 hours timeout
+    needs: [download-sstate-cache, download-shared-cache]
+    if: always()
+    outputs:
+      build-success: ${{ steps.build_step.outcome == 'success' }}
+      build-id: ${{ steps.build_info.outputs.BUILD_ID }}
+      machine: ${{ inputs.machine }}
     
     steps:
       - name: Free disk space
@@ -105,6 +327,7 @@ jobs:
           remove-haskell: 'true'
           remove-codeql: 'true'
           remove-docker-images: 'true'
+      
       - name: Checkout meta-seeed-cm4 repository
         uses: actions/checkout@v4
         with:
@@ -166,7 +389,7 @@ jobs:
           
           # Set up shell
           sudo rm -f /bin/sh && sudo ln -s bash /bin/sh
-
+          
           # Add user to docker group
           sudo usermod -aG docker $USER
 
@@ -178,12 +401,12 @@ jobs:
             userns,
           }
           EOF
-          sudo apparmor_parser -r /etc/apparmor.d/bitbake          
+          sudo apparmor_parser -r /etc/apparmor.d/bitbake
 
           # Check KAS installation
           kas --version
           
-          # Check space
+          #check space
           echo "Checking available disk space..."
           df -h || true
 
@@ -233,86 +456,138 @@ jobs:
           echo "Build ID: $BUILD_ID"
           echo "Image name: $IMAGE_NAME"
           echo "KAS file: $KAS_FILE"
+
+      - name: Download and extract sstate cache
+        if: ${{ !inputs.clean_build && needs.download-sstate-cache.outputs.cache-available == 'true' }}
+        run: |
+          # Create cache directories
+          mkdir -p ${{ github.workspace }}/build/sstate-cache
           
-          # Verify KAS file exists
-          if [ -f "$KAS_FILE" ]; then
-            echo "✓ KAS file found: $KAS_FILE"
-          else
-            echo "✗ KAS file not found: $KAS_FILE"
-            echo "Available KAS files:"
-            ls -la layers/meta-seeed-cm4/kas/ || echo "No kas directory found"
+          # Download the sstate cache tar file
+          echo "Downloading sstate cache artifact..."
+          
+      - name: Download sstate cache artifact
+        if: ${{ !inputs.clean_build && needs.download-sstate-cache.outputs.cache-available == 'true' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: sstate-cache-${{ inputs.machine }}
+          path: ${{ github.workspace }}/cache-temp/
+
+      - name: Extract sstate cache
+        if: ${{ !inputs.clean_build && needs.download-sstate-cache.outputs.cache-available == 'true' }}
+        run: |
+          echo "Extracting sstate cache..."
+          if [ -f "${{ github.workspace }}/cache-temp/${{ inputs.machine }}.sstate-cache.tar" ]; then
+            tar --no-same-owner -xf ${{ github.workspace }}/cache-temp/${{ inputs.machine }}.sstate-cache.tar -C ${{ github.workspace }}/build/sstate-cache
+            rm -f ${{ github.workspace }}/cache-temp/${{ inputs.machine }}.sstate-cache.tar
+            echo "sstate cache extracted successfully"
+            du -sh ${{ github.workspace }}/build/sstate-cache || true
+            ls -lS ${{ github.workspace }}/build/sstate-cache | head -n 10
           fi
 
-      - name: Setup sstate cache with rclone
-        if: ${{ !inputs.clean_build }}
+      - name: Download downloads cache artifact
+        if: ${{ needs.download-shared-cache.outputs.downloads-available == 'true' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: downloads-cache
+          path: ${{ github.workspace }}/cache-temp/
+
+      - name: Extract downloads cache
+        if: ${{ needs.download-shared-cache.outputs.downloads-available == 'true' }}
         run: |
-          # Create cache directories using KAS default paths
-          mkdir -p ${{ github.workspace }}/build/sstate-cache
+          # Create downloads directory
           mkdir -p ${{ github.workspace }}/build/downloads
           
-          # Download sstate cache from remote storage
-          echo "Downloading sstate cache..."
-          rclone copy -P --stats 1m seeed-storage:yocto-cache/scarthgap/${{ inputs.machine }}.sstate-cache.tar \
-            ${{ github.workspace }}/ \
-            --transfers 8 --checkers 8 --fast-list --ignore-existing || echo "No existing sstate cache found"
-          
-          if [ -f "${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar" ]; then
-            echo "Extracting sstate cache..."
-            tar --no-same-owner -xf ${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar -C ${{ github.workspace }}/build/sstate-cache
-            rm -f ${{ github.workspace }}/${{ inputs.machine }}.sstate-cache.tar
+          echo "Extracting downloads cache..."
+          if [ -f "${{ github.workspace }}/cache-temp/yocto-download.tar" ]; then
+            tar --no-same-owner -xf ${{ github.workspace }}/cache-temp/yocto-download.tar -C ${{ github.workspace }}/build/downloads
+            rm -f ${{ github.workspace }}/cache-temp/yocto-download.tar
+            echo "downloads cache extracted successfully"
+            du -sh ${{ github.workspace }}/build/downloads || true
+            ls -lS ${{ github.workspace }}/build/downloads | head -n 10
           fi
 
-          # Download shared downloads
-          echo "Downloading shared downloads..."
-          rclone copy -P --stats 1m seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
-            ${{ github.workspace }}/ \
-            --transfers 8 --checkers 8 --fast-list --ignore-existing || echo "No existing downloads cache found"
-          
-          if [ -f "${{ github.workspace }}/yocto-download.tar" ]; then
-            echo "Extracting downloads cache..."
-            tar --no-same-owner -xf ${{ github.workspace }}/yocto-download.tar -C ${{ github.workspace }}/build/downloads
-            rm -f ${{ github.workspace }}/yocto-download.tar
-          fi
-          
-          echo "Cache setup completed"
-          du -sh ${{ github.workspace }}/build/sstate-cache || true
-          du -sh ${{ github.workspace }}/build/downloads || true
-          
-          # Record initial file timestamps for change detection (very important for cache tracking)
-          echo "Recording initial file timestamps for cache tracking..."
+      - name: Cleanup cache artifacts
+        if: ${{ !inputs.clean_build }}
+        run: |
+          # Clean up temporary cache files
+          rm -rf ${{ github.workspace }}/cache-temp
+          echo "Temporary cache files cleaned up"
+        continue-on-error: true
+
+      - name: Delete sstate cache artifact
+        if: ${{ !inputs.clean_build && needs.download-sstate-cache.outputs.cache-available == 'true' }}
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: sstate-cache-${{ inputs.machine }}
+        continue-on-error: true
+
+      - name: Delete downloads cache artifact
+        if: ${{ needs.download-shared-cache.outputs.downloads-available == 'true' }}
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: downloads-cache
+        continue-on-error: true
+
+      - name: Setup cache tracking
+        run: |
+          # Record initial file timestamps for change detection
+          echo "Recording initial file timestamps..."
           mkdir -p ${{ github.workspace }}/build/cache-tracking
           
-          # Record sstate-cache files recursively
-          echo "Scanning sstate-cache directory..."
-          if [ -d "${{ github.workspace }}/build/sstate-cache" ]; then
-            find "${{ github.workspace }}/build/sstate-cache" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
-            sstate_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt 2>/dev/null || echo 0)
-          else
+          if [ "${{ inputs.clean_build }}" = "true" ]; then
+            echo "Clean build mode: starting with empty sstate cache"
+            # Create empty sstate-cache directory and tracking file for clean build
+            mkdir -p ${{ github.workspace }}/build/sstate-cache
             touch ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
-            sstate_count=0
-          fi
-          
-          # Record downloads files recursively  
-          echo "Scanning downloads directory..."
-          if [ -d "${{ github.workspace }}/build/downloads" ]; then
-            find "${{ github.workspace }}/build/downloads" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
-            downloads_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt 2>/dev/null || echo 0)
+            echo "Initial sstate-cache files: 0 (clean build)"
+            
+            # For downloads in clean build, check if they were extracted from fetchall
+            echo "Scanning downloads directory..."
+            if [ -d "${{ github.workspace }}/build/downloads" ] && [ "$(ls -A ${{ github.workspace }}/build/downloads)" ]; then
+              find "${{ github.workspace }}/build/downloads" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+              downloads_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt 2>/dev/null || echo 0)
+              echo "Initial downloads files: $downloads_count (from fetchall)"
+            else
+              mkdir -p ${{ github.workspace }}/build/downloads
+              touch ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+              echo "Initial downloads files: 0 (clean build, no fetchall)"
+            fi
           else
-            touch ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
-            downloads_count=0
-          fi
-          
-          echo "Initial sstate-cache files: $sstate_count"
-          echo "Initial downloads files: $downloads_count"
-          
-          # Show sample files for debugging
-          if [ "$sstate_count" -gt 0 ]; then
-            echo "Sample sstate-cache files:"
-            head -5 ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
-          fi
-          if [ "$downloads_count" -gt 0 ]; then
-            echo "Sample downloads files:"
-            head -5 ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+            # Record sstate-cache files recursively
+            echo "Scanning sstate-cache directory..."
+            if [ -d "${{ github.workspace }}/build/sstate-cache" ]; then
+              find "${{ github.workspace }}/build/sstate-cache" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+              sstate_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt 2>/dev/null || echo 0)
+            else
+              mkdir -p ${{ github.workspace }}/build/sstate-cache
+              touch ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+              sstate_count=0
+            fi
+            
+            # Record downloads files recursively  
+            echo "Scanning downloads directory..."
+            if [ -d "${{ github.workspace }}/build/downloads" ]; then
+              find "${{ github.workspace }}/build/downloads" -type f -printf "%T@ %p\n" 2>/dev/null > ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+              downloads_count=$(wc -l < ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt 2>/dev/null || echo 0)
+            else
+              mkdir -p ${{ github.workspace }}/build/downloads
+              touch ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+              downloads_count=0
+            fi
+            
+            echo "Initial sstate-cache files: $sstate_count"
+            echo "Initial downloads files: $downloads_count"
+            
+            # Show sample files for debugging
+            if [ "$sstate_count" -gt 0 ]; then
+              echo "Sample sstate-cache files:"
+              head -5 ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+            fi
+            if [ "$downloads_count" -gt 0 ]; then
+              echo "Sample downloads files:"
+              head -5 ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+            fi
           fi
 
       # - name: Setup tmate session
@@ -338,19 +613,13 @@ jobs:
           
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "=== BUILD FAILED with exit code $BUILD_EXIT_CODE ==="
-            echo "=== Last 100 lines of build log ==="
-            tail -100 build.log || echo "Could not read build log"
             echo "=== Final disk usage ==="
             df -h
             echo "=== Build directory disk usage ==="
             du -sh ${{ github.workspace }}/build/* 2>/dev/null || echo "Cannot access build directory"
-            echo "=== BitBake log files ==="
-            find ${{ github.workspace }}/build -name "log.*" -type f 2>/dev/null | head -5 || echo "No log files found"
             exit $BUILD_EXIT_CODE
           else
             echo "Build completed successfully"
-            echo "=== Build artifacts ==="
-            find ${{ github.workspace }}/build/tmp/deploy/images -name "*.wic*" -o -name "*.img*" 2>/dev/null || echo "No image files found"
           fi
           
 
@@ -371,9 +640,6 @@ jobs:
           
           echo "=== Build directory contents ==="
           ls -la ${{ github.workspace }}/build/ 2>/dev/null || echo "Cannot access build directory"
-          
-          echo "=== KAS log files ==="
-          find ${{ github.workspace }}/build -name "*.log" -type f 2>/dev/null | head -10 || echo "No log files found"
           
           echo "=== Temporary directory usage ==="
           du -sh ${{ github.workspace }}/build/tmp 2>/dev/null || echo "Cannot access tmp directory"
@@ -464,7 +730,7 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub Release
-        if: ${{ inputs.upload_release && steps.build_step.outcome == 'success' }}
+        if: steps.build_step.outcome == 'success'
         id: create_release
         uses: softprops/action-gh-release@v2
         env:
@@ -495,133 +761,105 @@ jobs:
           prerelease: ${{ inputs.build_type == 'development' }}
           files: ${{ github.workspace }}/release/*
 
-      - name: Upload sstate cache with rclone
+      - name: Prepare updated sstate cache for upload
         if: steps.build_step.outcome == 'success'
         run: |
-          # Function to check if file changes exceed threshold
-          check_file_changes() {
-            local cache_type="$1"
-            local cache_dir="$2"
-            local initial_file="$3"
-            local threshold=20  # 20% threshold
-
-            mkdir -p "${{ github.workspace }}/build/cache-tracking"
-
-            # Get current file list
-            find "$cache_dir" -type f -printf "%T@ %p\n" 2>/dev/null > "${{ github.workspace }}/build/cache-tracking/${cache_type}-current.txt" || {
-              echo "Failed to scan current $cache_type files"
-              return 1
+          echo "Preparing sstate cache for upload..."
+          
+          # Clean up sstate cache before packaging
+          if [ -f "${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.sh" ]; then
+            echo "Cleaning up sstate cache..."
+            
+            # Show sstate-cache size before cleanup
+            echo "sstate-cache size before cleanup:"
+            du -sh ${{ github.workspace }}/build/sstate-cache/ 2>/dev/null || echo "Cannot access sstate-cache directory"
+            
+            # Clean unused cache files
+            echo "Cleaning unused sstate cache files..."
+            if [ -d "${{ github.workspace }}/build/tmp/stamps" ]; then
+              ${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.sh -y -v \
+                --cache-dir=${{ github.workspace }}/build/sstate-cache/ \
+                --stamps-dir=${{ github.workspace }}/build/tmp/stamps || {
+                echo "⚠️ WARNING: Failed to clean unused sstate cache files"
+              }
+            else
+              echo "Stamps directory not found, skipping unused cache cleanup"
+            fi
+            
+            # Clean duplicated cache files
+            echo "Cleaning duplicated sstate cache files..."
+            ${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.sh -y -v \
+              --cache-dir=${{ github.workspace }}/build/sstate-cache/ \
+              --remove-duplicated || {
+              echo "⚠️ WARNING: Failed to clean duplicated sstate cache files"
             }
-            local current_file="${{ github.workspace }}/build/cache-tracking/${cache_type}-current.txt"
-
-            # Count files
-            local initial_count
-            initial_count=$(wc -l < "$initial_file" 2>/dev/null || echo 0)
-            local current_count
-            current_count=$(wc -l < "$current_file" 2>/dev/null || echo 0)
-
-            echo "Initial $cache_type files: $initial_count"
-            echo "Current $cache_type files: $current_count"
-
-            # If no initial files, always upload (new cache)
-            if [ "$initial_count" -eq 0 ]; then
-              echo "No initial $cache_type files, uploading new cache"
-              return 0
-            fi
-
-            # If no current files, skip upload (something went wrong)
-            if [ "$current_count" -eq 0 ]; then
-              echo "No current $cache_type files found, skipping upload"
-              return 1
-            fi
-
-            # New files: present in current but not in initial
-            local new_files
-            new_files=$(awk 'NR==FNR{seen[$2]=1; next} !($2 in seen){c++} END{print c+0}' "$initial_file" "$current_file")
-
-            # Modified files: same path exists but timestamp changed
-            local modified_files
-            modified_files=$(awk 'NR==FNR{ts[$2]=$1; next} ($2 in ts) && ($1!=ts[$2]){c++} END{print c+0}' "$initial_file" "$current_file")
-
-            local total_changes=$((new_files + modified_files))
-            local change_percentage=0
-            if [ "$initial_count" -gt 0 ]; then
-              change_percentage=$(( (total_changes * 100) / initial_count ))
-            fi
-
-            echo "New $cache_type files: $new_files"
-            echo "Modified $cache_type files: $modified_files"
-            echo "Total changes: $total_changes"
-            echo "Change percentage: $change_percentage%"
-
-            # Return 0 (upload) if changes exceed threshold, 1 (skip) otherwise
-            if [ "$change_percentage" -gt "$threshold" ]; then
-              echo "Changes ($change_percentage%) exceed threshold ($threshold%), will upload"
-              return 0
-            else
-              echo "Changes ($change_percentage%) below or equal to threshold ($threshold%), skipping upload"
-              return 1
-            fi
-          }
+            
+            # Show sstate-cache size after cleanup
+            echo "sstate-cache size after cleanup:"
+            du -sh ${{ github.workspace }}/build/sstate-cache/ 2>/dev/null || echo "Cannot access sstate-cache directory"
+          else
+            echo "⚠️ WARNING: sstate-cache-management.sh script not found, skipping cleanup"
+          fi
           
-          # Upload updated sstate cache back to remote storage
-          echo "Checking sstate cache changes..."
+          # Show disk space before cleanup
+          echo "Disk space before cleanup:"
+          df -h
+          # Clean up some temporary build files to free disk space
+          echo "Cleaning up work directories to free disk space..."
+          if [ -d "${{ github.workspace }}/build/tmp/work" ]; then
+            echo "Removing work directory..."
+            rm -rf ${{ github.workspace }}/build/tmp/work
+            echo "work directory removed"
+          fi
+          
+          # Show disk space after cleanup
+          echo "Disk space after cleanup:"
+          df -h
+          
+          # Create sstate cache archive
           if [ -d "${{ github.workspace }}/build/sstate-cache" ] && [ "$(ls -A ${{ github.workspace }}/build/sstate-cache)" ]; then
-            if check_file_changes "sstate-cache" "${{ github.workspace }}/build/sstate-cache" "${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt"; then
-              echo "Uploading sstate cache..."
-              if tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/build/${{ inputs.machine }}.sstate-cache.tar \
-                -C ${{ github.workspace }}/build/sstate-cache .; then
-                echo "sstate cache tarball created successfully"
-                if rclone copyto -P --stats 1m ${{ github.workspace }}/build/${{ inputs.machine }}.sstate-cache.tar \
-                  seeed-storage:yocto-cache/scarthgap/${{ inputs.machine }}.sstate-cache.tar \
-                  --update; then
-                  echo "sstate cache uploaded successfully"
-                else
-                  echo "⚠️ WARNING: Failed to upload sstate cache to remote storage"
-                  echo "This will not affect the build success, but may impact future build performance"
-                fi
-                rm -f ${{ github.workspace }}/build/${{ inputs.machine }}.sstate-cache.tar
-              else
-                echo "⚠️ WARNING: Failed to create sstate cache tarball"
-              fi
-            else
-              echo "Skipping sstate cache upload (insufficient changes)"
-            fi
+            # Create tar archive of updated sstate cache
+            tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/updated-${{ inputs.machine }}.sstate-cache.tar \
+              -C ${{ github.workspace }}/build/sstate-cache .
+            echo "sstate cache archive created: $(ls -lh ${{ github.workspace }}/updated-${{ inputs.machine }}.sstate-cache.tar)"
           else
-            echo "No sstate cache to upload"
+            echo "No sstate cache to prepare for upload"
           fi
-          
-          # Upload downloads cache
-          echo "Checking downloads cache changes..."
+
+      - name: Upload updated sstate cache for upload job
+        if: steps.build_step.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-sstate-cache-${{ inputs.machine }}-${{ steps.build_info.outputs.BUILD_ID }}
+          path: |
+            ${{ github.workspace }}/updated-${{ inputs.machine }}.sstate-cache.tar
+            ${{ github.workspace }}/build/cache-tracking/sstate-cache-initial.txt
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Prepare updated downloads cache for upload
+        if: steps.build_step.outcome == 'success' && !inputs.disable_upload_downloads
+        run: |
+          echo "Preparing downloads cache for upload..."
           if [ -d "${{ github.workspace }}/build/downloads" ] && [ "$(ls -A ${{ github.workspace }}/build/downloads)" ]; then
-            if check_file_changes "downloads" "${{ github.workspace }}/build/downloads" "${{ github.workspace }}/build/cache-tracking/downloads-initial.txt"; then
-              echo "Uploading downloads cache..."
-              if tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/build/yocto-download.tar \
-                -C ${{ github.workspace }}/build/downloads .; then
-                echo "downloads cache tarball created successfully"
-                if rclone copyto -P --stats 1m ${{ github.workspace }}/build/yocto-download.tar \
-                  seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
-                  --update; then
-                  echo "downloads cache uploaded successfully"
-                else
-                  echo "⚠️ WARNING: Failed to upload downloads cache to remote storage"
-                  echo "This will not affect the build success, but may impact future build performance"
-                fi
-                rm -f ${{ github.workspace }}/build/yocto-download.tar
-              else
-                echo "⚠️ WARNING: Failed to create downloads cache tarball"
-              fi
-            else
-              echo "Skipping downloads cache upload (insufficient changes)"
-            fi
+            # Create tar archive of updated downloads cache
+            tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/updated-yocto-download.tar \
+              -C ${{ github.workspace }}/build/downloads .
+            echo "downloads cache archive created: $(ls -lh ${{ github.workspace }}/updated-yocto-download.tar)"
           else
-            echo "No downloads cache to upload"
+            echo "No downloads cache to prepare for upload"
           fi
-          
-          echo "==============================================="
-          echo "Cache upload process completed"
-          echo "Note: Cache upload failures are non-critical and will not affect build success"
-          echo "==============================================="
+
+      - name: Upload updated downloads cache for upload job
+        if: steps.build_step.outcome == 'success' && !inputs.disable_upload_downloads
+        uses: actions/upload-artifact@v4
+        with:
+          name: updated-downloads-cache-${{ steps.build_info.outputs.BUILD_ID }}
+          path: |
+            ${{ github.workspace }}/updated-yocto-download.tar
+            ${{ github.workspace }}/build/cache-tracking/downloads-initial.txt
+          retention-days: 1
+          if-no-files-found: ignore
 
       - name: Build summary
         if: always()
@@ -636,7 +874,7 @@ jobs:
           echo "- **Machine Version**: ${{ steps.yocto_vars.outputs.MACHINE_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ inputs.upload_release }}" = "true" ]; then
+          if [ "${{ steps.build_step.outcome }}" = "success" ]; then
             echo "- **Release**: [${{ steps.artifacts.outputs.RELEASE_TAG }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.artifacts.outputs.RELEASE_TAG }})" >> $GITHUB_STEP_SUMMARY
           fi
           
@@ -651,4 +889,263 @@ jobs:
               fi
             done
           fi
+
+  upload-sstate-cache:
+    name: Upload updated sstate cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    needs: build-yocto-image
+    if: needs.build-yocto-image.outputs.build-success == 'true'
+    
+    steps:
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          version: v1.67.0
+          rclone_config: ${{ secrets.RCLONE_CONFIG }}
+
+      - name: Download updated sstate cache
+        uses: actions/download-artifact@v5
+        with:
+          name: updated-sstate-cache-${{ needs.build-yocto-image.outputs.machine }}-${{ needs.build-yocto-image.outputs.build-id }}
+          path: ${{ github.workspace }}/
+
+      - name: Upload sstate cache with rclone
+        run: |
+          # Function to check if file changes exceed threshold by comparing tar files
+          check_tar_changes() {
+            local new_tar="$1"
+            local machine="$2"
+            local initial_file="$3"
+            local threshold=20  # 20% threshold
+            
+            echo "Checking sstate cache changes..."
+            
+            # Check if we have the tar file
+            if [ ! -f "$new_tar" ]; then
+              echo "No updated sstate cache tar file found"
+              return 1
+            fi
+            
+            # Check if we have initial file list
+            if [ ! -f "$initial_file" ]; then
+              echo "No initial file list found, uploading new cache"
+              return 0
+            fi
+            
+            # Count initial files
+            local initial_count=$(wc -l < "$initial_file" 2>/dev/null || echo 0)
+            echo "Initial sstate-cache files: $initial_count"
+            
+            # If no initial files, always upload
+            if [ "$initial_count" -eq 0 ]; then
+              echo "No initial sstate-cache files, uploading new cache"
+              return 0
+            fi
+            
+            # Extract current file list from tar
+            mkdir -p /tmp/sstate-check
+            tar -tf "$new_tar" > /tmp/sstate-current-list.txt 2>/dev/null || {
+              echo "Failed to list tar contents"
+              return 1
+            }
+            
+            local current_count=$(wc -l < /tmp/sstate-current-list.txt)
+            echo "Current sstate-cache files: $current_count"
+            
+            # Check for new files (files in current but not in initial)
+            local new_files=0
+            while IFS= read -r filepath; do
+              # Extract just the filename from the initial list (format: "timestamp path")
+              if ! awk '{print $2}' "$initial_file" | grep -q "$(basename "$filepath")" 2>/dev/null; then
+                ((new_files++))
+              fi
+            done < /tmp/sstate-current-list.txt
+            
+            # Calculate change percentage
+            local change_percentage=0
+            if [ "$initial_count" -gt 0 ]; then
+              change_percentage=$(( (new_files * 100) / initial_count ))
+            fi
+            
+            echo "New sstate-cache files: $new_files"
+            echo "Change percentage: $change_percentage%"
+            
+            # Return 0 (upload) if changes exceed threshold, 1 (skip) otherwise
+            if [ "$change_percentage" -gt "$threshold" ] || [ "$current_count" -gt "$initial_count" ]; then
+              echo "Changes detected, will upload"
+              return 0
+            else
+              echo "Minimal changes detected, skipping upload"
+              return 1
+            fi
+          }
+          
+          # Upload updated sstate cache back to remote storage
+          echo "Processing sstate cache upload..."
+          
+          if [ -f "${{ github.workspace }}/updated-${{ needs.build-yocto-image.outputs.machine }}.sstate-cache.tar" ]; then
+            if check_tar_changes "${{ github.workspace }}/updated-${{ needs.build-yocto-image.outputs.machine }}.sstate-cache.tar" \
+                                 "${{ needs.build-yocto-image.outputs.machine }}" \
+                                 "${{ github.workspace }}/sstate-cache-initial.txt"; then
+              echo "Uploading sstate cache..."
+              if rclone copyto -P --stats 1m ${{ github.workspace }}/updated-${{ needs.build-yocto-image.outputs.machine }}.sstate-cache.tar \
+                seeed-storage:yocto-cache/scarthgap/${{ needs.build-yocto-image.outputs.machine }}.sstate-cache.tar \
+                --update; then
+                echo "sstate cache uploaded successfully"
+              else
+                echo "⚠️ WARNING: Failed to upload sstate cache to remote storage"
+                echo "This will not affect the build success, but may impact future build performance"
+              fi
+            else
+              echo "Skipping sstate cache upload (insufficient changes)"
+            fi
+          else
+            echo "No sstate cache file to upload"
+          fi
+          
+          echo "==============================================="
+          echo "sstate cache upload process completed"
+          echo "==============================================="
+
+      - name: Delete updated sstate cache artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: updated-sstate-cache-${{ needs.build-yocto-image.outputs.machine }}-${{ needs.build-yocto-image.outputs.build-id }}
+        continue-on-error: true
+
+  upload-downloads-cache:
+    name: Upload updated downloads cache
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    needs: build-yocto-image
+    if: needs.build-yocto-image.outputs.build-success == 'true' && !inputs.disable_upload_downloads
+    
+    steps:
+      - name: Setup Rclone
+        uses: AnimMouse/setup-rclone@v1
+        with:
+          version: v1.67.0
+          rclone_config: ${{ secrets.RCLONE_CONFIG }}
+
+      - name: Download updated downloads cache
+        uses: actions/download-artifact@v5
+        with:
+          name: updated-downloads-cache-${{ needs.build-yocto-image.outputs.build-id }}
+          path: ${{ github.workspace }}/
+
+      - name: Upload downloads cache with rclone
+        run: |
+          # Function to check if file changes exceed threshold by comparing tar files
+          check_tar_changes() {
+            local new_tar="$1"
+            local initial_file="$2"
+            local threshold=20  # 20% threshold
+            
+            echo "Checking downloads cache changes..."
+            
+            # Check if we have the tar file
+            if [ ! -f "$new_tar" ]; then
+              echo "No updated downloads cache tar file found"
+              return 1
+            fi
+            
+            # Check if we have initial file list
+            if [ ! -f "$initial_file" ]; then
+              echo "No initial file list found, uploading new cache"
+              return 0
+            fi
+            
+            # Count initial files
+            local initial_count=$(wc -l < "$initial_file" 2>/dev/null || echo 0)
+            echo "Initial downloads files: $initial_count"
+            
+            # If no initial files, always upload
+            if [ "$initial_count" -eq 0 ]; then
+              echo "No initial downloads files, uploading new cache"
+              return 0
+            fi
+            
+            # Extract current file list from tar
+            mkdir -p /tmp/downloads-check
+            tar -tf "$new_tar" > /tmp/downloads-current-list.txt 2>/dev/null || {
+              echo "Failed to list tar contents"
+              return 1
+            }
+            
+            local current_count=$(wc -l < /tmp/downloads-current-list.txt)
+            echo "Current downloads files: $current_count"
+            
+            # Check for new files (files in current but not in initial)
+            local new_files=0
+            while IFS= read -r filepath; do
+              # Extract just the filename from the initial list (format: "timestamp path")
+              if ! awk '{print $2}' "$initial_file" | grep -q "$(basename "$filepath")" 2>/dev/null; then
+                ((new_files++))
+              fi
+            done < /tmp/downloads-current-list.txt
+            
+            # Calculate change percentage
+            local change_percentage=0
+            if [ "$initial_count" -gt 0 ]; then
+              change_percentage=$(( (new_files * 100) / initial_count ))
+            fi
+            
+            echo "New downloads files: $new_files"
+            echo "Change percentage: $change_percentage%"
+            
+            # Return 0 (upload) if changes exceed threshold, 1 (skip) otherwise
+            if [ "$change_percentage" -gt "$threshold" ] || [ "$current_count" -gt "$initial_count" ]; then
+              echo "Changes detected, will upload"
+              return 0
+            else
+              echo "Minimal changes detected, skipping upload"
+              return 1
+            fi
+          }
+          
+          # Upload downloads cache
+          echo "Processing downloads cache upload..."
+          
+          if [ -f "${{ github.workspace }}/updated-yocto-download.tar" ]; then
+            if check_tar_changes "${{ github.workspace }}/updated-yocto-download.tar" \
+                                 "${{ github.workspace }}/downloads-initial.txt"; then
+              echo "Uploading downloads cache..."
+              if rclone copyto -P --stats 1m ${{ github.workspace }}/updated-yocto-download.tar \
+                seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
+                --update; then
+                echo "downloads cache uploaded successfully"
+              else
+                echo "⚠️ WARNING: Failed to upload downloads cache to remote storage"
+                echo "This will not affect the build success, but may impact future build performance"
+              fi
+            else
+              echo "Skipping downloads cache upload (insufficient changes)"
+            fi
+          else
+            echo "No downloads cache file to upload"
+          fi
+          
+          echo "==============================================="
+          echo "downloads cache upload process completed"
+          echo "==============================================="
+
+      - name: Delete updated downloads cache artifact
+        uses: geekyeggo/delete-artifact@v5
+        with:
+          name: updated-downloads-cache-${{ needs.build-yocto-image.outputs.build-id }}
+        continue-on-error: true
+
+  cleanup:
+    name: Cleanup build artifacts
+    runs-on: ubuntu-24.04
+    needs: build-yocto-image
+    if: always()
+    
+    steps:
+      - name: Cleanup workspace
+        run: |
+          echo "Cleaning up workspace..."
+          # Show final disk usage
+          df -h
           
