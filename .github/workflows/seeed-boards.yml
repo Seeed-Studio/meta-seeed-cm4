@@ -273,7 +273,7 @@ jobs:
     needs: [download-sstate-cache, download-shared-cache]
     if: always()
     outputs:
-      build-success: ${{ steps.build_step.outcome == 'success' }}
+      build-success: ${{ steps.build_step.outputs.build-success }}
       build-id: ${{ steps.build_info.outputs.BUILD_ID }}
       machine: ${{ inputs.machine }}
     
@@ -617,14 +617,18 @@ jobs:
             df -h
             echo "=== Build directory disk usage ==="
             du -sh ${{ github.workspace }}/build/* 2>/dev/null || echo "Cannot access build directory"
+            echo "build-success=false" >> $GITHUB_OUTPUT
             exit $BUILD_EXIT_CODE
           else
             echo "Build completed successfully"
+            echo "build-success=true" >> $GITHUB_OUTPUT
           fi
-          
+
+          #dump all GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
 
       - name: Build failure diagnosis
-        if: steps.build_step.outcome == 'failure'
+        if: steps.build_step.outputs.build-success == 'false'
         run: |
           echo "=== BUILD FAILURE DIAGNOSIS ==="
           echo "Build step failed, collecting diagnostic information..."
@@ -660,7 +664,7 @@ jobs:
           exit 1
 
       - name: Get Yocto build variables
-        if: steps.build_step.outcome == 'success'
+        if: steps.build_step.outputs.build-success == 'true'
         id: yocto_vars
         run: |
           # Extract build information from Yocto
@@ -684,7 +688,7 @@ jobs:
           echo "Machine: ${{ inputs.machine }}"
 
       - name: Prepare release artifacts
-        if: steps.build_step.outcome == 'success'
+        if: steps.build_step.outputs.build-success == 'true'
         id: artifacts
         run: |
           # Create release directory
@@ -722,7 +726,7 @@ jobs:
           echo "RELEASE_NAME=Yocto Image for ${{ inputs.machine }} - ${{ steps.build_info.outputs.BUILD_DATE }}" >> $GITHUB_OUTPUT
 
       - name: Upload artifacts as build artifacts
-        if: steps.build_step.outcome == 'success'
+        if: steps.build_step.outputs.build-success == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: yocto-${{ inputs.machine }}-${{ steps.build_info.outputs.BUILD_ID }}
@@ -730,7 +734,7 @@ jobs:
           retention-days: 30
 
       - name: Create GitHub Release
-        if: steps.build_step.outcome == 'success'
+        if: steps.build_step.outputs.build-success == 'true'
         id: create_release
         uses: softprops/action-gh-release@v2
         env:
@@ -762,7 +766,7 @@ jobs:
           files: ${{ github.workspace }}/release/*
 
       - name: Prepare updated sstate cache for upload
-        if: steps.build_step.outcome == 'success'
+        if: steps.build_step.outputs.build-success == 'true'
         run: |
           echo "Preparing sstate cache for upload..."
           
@@ -835,7 +839,7 @@ jobs:
           fi
 
       - name: Upload updated sstate cache for upload job
-        if: steps.build_step.outcome == 'success'
+        if: steps.build_step.outputs.build-success == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: updated-sstate-cache-${{ inputs.machine }}-${{ steps.build_info.outputs.BUILD_ID }}
@@ -846,7 +850,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Prepare updated downloads cache for upload
-        if: steps.build_step.outcome == 'success' && !inputs.disable_upload_downloads
+        if: steps.build_step.outputs.build-success == 'true' && !inputs.disable_upload_downloads
         run: |
           echo "Preparing downloads cache for upload..."
           if [ -d "${{ github.workspace }}/build/downloads" ] && [ "$(ls -A ${{ github.workspace }}/build/downloads)" ]; then
@@ -859,7 +863,7 @@ jobs:
           fi
 
       - name: Upload updated downloads cache for upload job
-        if: steps.build_step.outcome == 'success' && !inputs.disable_upload_downloads
+        if: steps.build_step.outputs.build-success == 'true' && !inputs.disable_upload_downloads
         uses: actions/upload-artifact@v4
         with:
           name: updated-downloads-cache-${{ steps.build_info.outputs.BUILD_ID }}
@@ -882,7 +886,7 @@ jobs:
           echo "- **Machine Version**: ${{ steps.yocto_vars.outputs.MACHINE_VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          if [ "${{ steps.build_step.outcome }}" = "success" ]; then
+          if [ "${{ steps.build_step.outputs.build-success }}" = "true" ]; then
             echo "- **Release**: [${{ steps.artifacts.outputs.RELEASE_TAG }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.artifacts.outputs.RELEASE_TAG }})" >> $GITHUB_STEP_SUMMARY
           fi
           
