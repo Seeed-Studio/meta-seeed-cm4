@@ -19,7 +19,7 @@ repos:
   
   meta-raspberrypi:
     path: layers/meta-raspberrypi
-    branch: scarthgap
+    branch: 1f2045321afd6ef20b457266ac3e97c8577eb1c4
   
   meta-lts-mixins:
     path: layers/meta-lts-mixins
@@ -77,4 +77,4 @@ local_conf_header:
     MENDER_FEATURES_DISABLE:append = " mender-grub mender-image-uefi"
 
 target:
-  - core-image-minimal
+  - recomputer-r2x
