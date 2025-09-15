@@ -41,6 +41,33 @@ on:
         type: boolean
         description: 'Clean build (ignore sstate cache)'
         default: false
+  workflow_call:
+    inputs:
+      machine:
+        required: true
+        type: string
+      build_type:
+        required: false
+        type: string
+        default: development
+      disable_upload_downloads:
+        required: false
+        type: boolean
+        default: true
+      clean_build:
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      build-success:
+        description: Build success flag
+        value: ${{ jobs.build-yocto-image.outputs.build-success }}
+      build-id:
+        description: Build ID
+        value: ${{ jobs.build-yocto-image.outputs.build-id }}
+      machine:
+        description: Machine name
+        value: ${{ jobs.build-yocto-image.outputs.machine }}
 
 env:
   LANG: "en_US.UTF-8"
@@ -425,7 +452,9 @@ jobs:
         run: |
           # Get build timestamp
           BUILD_DATE=$(date -u +"%Y-%m-%d_%H-%M-%S")
+          SHORT_DATE=$(date -u +"%Y%m%d")
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_OUTPUT
+          echo "SHORT_DATE=$SHORT_DATE" >> $GITHUB_OUTPUT
           
           # Generate build ID
           BUILD_ID="${{ inputs.machine }}_${BUILD_DATE}_${GITHUB_SHA:0:8}"
@@ -708,7 +737,9 @@ jobs:
           if [ -d "$DEPLOY_DIR" ]; then
             echo "Found deploy directory: $DEPLOY_DIR"
             ls -la "$DEPLOY_DIR"
-            cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
+            # cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
+            cp -f $DEPLOY_DIR/*.wic.bz2 ${{ github.workspace }}/release/ || echo "No matching images found to copy"
+            cp -f $DEPLOY_DIR/*.mender ${{ github.workspace }}/release/ || echo "No matching mender found to copy"
           fi
           
           # Create build information file
@@ -737,7 +768,7 @@ jobs:
         if: steps.build_step.outputs.build-success == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: yocto-${{ inputs.machine }}-${{ steps.build_info.outputs.BUILD_ID }}
+          name: yocto-${{ inputs.machine }}-${{ steps.build_info.outputs.SHORT_DATE }}
           path: ${{ github.workspace }}/release/
           retention-days: 30
 
@@ -1137,4 +1168,3 @@ jobs:
           echo "Cleaning up workspace..."
           # Show final disk usage
           df -h
-          
