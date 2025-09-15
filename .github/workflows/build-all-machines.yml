@@ -1,0 +1,94 @@
+name: build-all-seeed-boards
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        type: choice
+        description: 'Build type for all machines'
+        options:
+          - development
+          - production
+        default: 'development'
+      disable_upload_downloads:
+        type: boolean
+        description: 'Disable upload of downloads cache (per machine workflow still can use existing cache)'
+        default: true
+      clean_build:
+        type: boolean
+        description: 'Force clean build for all machines'
+        default: false
+
+jobs:
+  build-matrix:
+    name: Build ${{ matrix.machine }}
+    strategy:
+      fail-fast: false
+      matrix:
+        machine:
+          - seeed-recomputer-r100x-mender
+          - seeed-reterminal-mender
+          - seeed-reterminal-DM-mender
+          - seeed-rerouter-cm4-mender
+          - seeed-recomputer-r2x-mender
+    uses: ./.github/workflows/seeed-boards.yml
+    with:
+      machine: ${{ matrix.machine }}
+      build_type: ${{ inputs.build_type }}
+      disable_upload_downloads: ${{ inputs.disable_upload_downloads }}
+      clean_build: ${{ inputs.clean_build }}
+
+  aggregate-release:
+    name: Aggregate artifacts & Release
+    needs: build-matrix
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Prepare workspace
+        run: mkdir -p aggregated
+
+      - name: Download per-machine artifacts
+        if: needs.build-matrix.result == 'success'
+        uses: actions/download-artifact@v5
+        with:
+          path: aggregated
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifact structure:" || true
+          find aggregated -maxdepth 4 -type f | head -200 || true
+
+
+      - name: Compute release metadata
+        id: meta
+        run: |
+          # Date format: yyyy-mm-dd-ss (UTC)
+          DATE_TAG=$(date -u +"%Y-%m-%d-%S")
+          RELEASE_TAG=${DATE_TAG}
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "DATE_TAG=$DATE_TAG" >> $GITHUB_OUTPUT
+          echo "Machines built:" > aggregated/BUILD_SUMMARY.txt
+          for m in seeed-recomputer-r100x-mender seeed-reterminal-mender seeed-reterminal-DM-mender seeed-rerouter-cm4-mender seeed-recomputer-r2x-mender; do
+            echo "- $m" >> aggregated/BUILD_SUMMARY.txt
+          done
+          echo "Git commit: $GITHUB_SHA" >> aggregated/BUILD_SUMMARY.txt
+          echo "Build type: ${BUILD_TYPE}" >> aggregated/BUILD_SUMMARY.txt
+        env:
+          BUILD_TYPE: ${{ inputs.build_type }}
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.RELEASE_TAG }}
+          name: "Seeed Yocto multi-machine build ${{ steps.meta.outputs.RELEASE_TAG }}"
+          files: |
+            aggregated/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "# Multi-machine Build Release" >> $GITHUB_STEP_SUMMARY
+          echo "Tag: ${{ steps.meta.outputs.RELEASE_TAG }}" >> $GITHUB_STEP_SUMMARY
+          echo "Included machines:" >> $GITHUB_STEP_SUMMARY
+          cat aggregated/BUILD_SUMMARY.txt >> $GITHUB_STEP_SUMMARY
