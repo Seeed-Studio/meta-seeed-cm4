@@ -177,28 +177,6 @@ jobs:
           
           # Move checked out meta-seeed-cm4 to layers directory
           mv meta-seeed-cm4 layers/
-          
-          # Clone required layers with correct branches
-          echo "Cloning Poky..."
-          git clone -b scarthgap https://git.yoctoproject.org/poky layers/poky
-          
-          echo "Cloning meta-openembedded..."
-          git clone -b scarthgap git://git.openembedded.org/meta-openembedded.git layers/meta-openembedded
-          
-          echo "Cloning meta-raspberrypi..."
-          git clone -b scarthgap https://github.com/agherzan/meta-raspberrypi.git layers/meta-raspberrypi
-          
-          echo "Cloning meta-mender..."
-          git clone -b scarthgap https://github.com/mendersoftware/meta-mender.git layers/meta-mender
-          
-          echo "Cloning meta-mender-community..."
-          git clone -b scarthgap https://github.com/mendersoftware/meta-mender-community.git layers/meta-mender-community
-          
-          echo "Cloning meta-lts-mixins..."
-          git clone https://git.yoctoproject.org/meta-lts-mixins.git layers/meta-lts-mixins
-          cd layers/meta-lts-mixins
-          git checkout a44882db02a0ed0f149371831bfbe067665eb42b
-          cd ../..
 
       - name: Yocto fetchall for clean build
         if: ${{ inputs.clean_build }}
@@ -373,28 +351,6 @@ jobs:
           
           # Move checked out meta-seeed-cm4 to layers directory
           mv meta-seeed-cm4 layers/
-          
-          # Clone required layers with correct branches
-          echo "Cloning Poky..."
-          git clone -b scarthgap https://git.yoctoproject.org/poky layers/poky
-          
-          echo "Cloning meta-openembedded..."
-          git clone -b scarthgap git://git.openembedded.org/meta-openembedded.git layers/meta-openembedded
-          
-          echo "Cloning meta-raspberrypi..."
-          git clone -b scarthgap https://github.com/agherzan/meta-raspberrypi.git layers/meta-raspberrypi
-          
-          echo "Cloning meta-mender..."
-          git clone -b scarthgap https://github.com/mendersoftware/meta-mender.git layers/meta-mender
-          
-          echo "Cloning meta-mender-community..."
-          git clone -b scarthgap https://github.com/mendersoftware/meta-mender-community.git layers/meta-mender-community
-          
-          echo "Cloning meta-lts-mixins..."
-          git clone https://git.yoctoproject.org/meta-lts-mixins.git layers/meta-lts-mixins
-          cd layers/meta-lts-mixins
-          git checkout a44882db02a0ed0f149371831bfbe067665eb42b
-          cd ../..
           
           # Verify workspace structure
           echo "Workspace structure:"

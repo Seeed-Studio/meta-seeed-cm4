@@ -1,36 +1,62 @@
 header:
   version: 14
-  includes:
-  - ../meta-mender-community/kas/include/mender-base.yml
+
+distro: poky
 
 repos:
-  # Repository paths relative to workspace root
-  poky:
-    path: layers/poky
+  openembedded-core:
+    url: git://git.openembedded.org/openembedded-core.git
     branch: scarthgap
-  
+    path: layers/openembedded-core
+    layers:
+      meta:
+
+  bitbake:
+    url: git://git.openembedded.org/bitbake.git
+    commit: 1c9ec1ffde75809de34c10d3ec2b40d84d258cb4
+    path: layers/bitbake
+    layers:
+      bitbake: disabled
+
+  meta-yocto:
+    url: git://git.yoctoproject.org/git/meta-yocto.git
+    branch: scarthgap
+    path: layers/meta-yocto
+    layers:
+      meta-poky:
+      meta-yocto-bsp:
+
   meta-openembedded:
+    url: git://git.openembedded.org/meta-openembedded
+    branch: scarthgap
     path: layers/meta-openembedded
-    branch: scarthgap
-  
+    layers:
+      meta-oe:
+
   meta-mender:
-    path: layers/meta-mender
+    url: https://github.com/mendersoftware/meta-mender.git
     branch: scarthgap
+    path: layers/meta-mender
+    layers:
+      meta-mender-core:
   
   meta-raspberrypi:
+    url: https://github.com/agherzan/meta-raspberrypi.git
+    branch: scarthgap
     path: layers/meta-raspberrypi
-    branch: scarthgap
-  
+
   meta-lts-mixins:
+    url: https://git.yoctoproject.org/meta-lts-mixins
+    branch: scarthgap/u-boot
     path: layers/meta-lts-mixins
-    commit: a44882db02a0ed0f149371831bfbe067665eb42b
-  
+
   meta-mender-community:
-    path: layers/meta-mender-community
+    url: https://github.com/mendersoftware/meta-mender-community.git
     branch: scarthgap
+    path: layers/meta-mender-community
     layers:
       meta-mender-raspberrypi:
-  
+
   meta-seeed-cm4:
     path: layers/meta-seeed-cm4
     branch: main
@@ -38,16 +64,17 @@ repos:
 machine: seeed-rerouter-cm4-mender
 
 local_conf_header:
+  base: |
+    CONF_VERSION = "2"
+    PACKAGE_CLASSES = "package_ipk"
+    INIT_MANAGER = "systemd"
+
+  mender-artifact: |
+    MENDER_ARTIFACT_NAME = "gha_autobuild"
+
   mender-full: |
     INHERIT += "mender-full"
-  
-  raspberrypi: |
-    RPI_USE_U_BOOT = "1"
-    ENABLE_UART = "1"
-    MENDER_BOOT_PART_SIZE_MB = "100"
-    IMAGE_INSTALL:append = " kernel-image kernel-devicetree userlandtools"
-    IMAGE_FSTYPES:remove = " rpi-sdimg"
-  
+
   seeed-rerouter-cm4: |
     # Seeed reRouter CM4 specific configurations
     PREFERRED_VERSION_linux-raspberrypi ?= "6.12%"
