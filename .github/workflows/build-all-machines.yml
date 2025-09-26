@@ -48,7 +48,6 @@ jobs:
         run: mkdir -p aggregated
 
       - name: Download per-machine artifacts
-        if: needs.build-matrix.result == 'success'
         uses: actions/download-artifact@v5
         with:
           path: aggregated
@@ -63,16 +62,8 @@ jobs:
         id: meta
         run: |
           # Date format: yyyy-mm-dd-ss (UTC)
-          DATE_TAG=$(date -u +"%Y-%m-%d-%S")
-          RELEASE_TAG=${DATE_TAG}
+          RELEASE_TAG=$(date -u +"%Y-%m-%d-%S")
           echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
-          echo "DATE_TAG=$DATE_TAG" >> $GITHUB_OUTPUT
-          echo "Machines built:" > aggregated/BUILD_SUMMARY.txt
-          for m in seeed-recomputer-r100x-mender seeed-reterminal-mender seeed-reterminal-DM-mender seeed-rerouter-cm4-mender seeed-recomputer-r2x-mender; do
-            echo "- $m" >> aggregated/BUILD_SUMMARY.txt
-          done
-          echo "Git commit: $GITHUB_SHA" >> aggregated/BUILD_SUMMARY.txt
-          echo "Build type: ${BUILD_TYPE}" >> aggregated/BUILD_SUMMARY.txt
         env:
           BUILD_TYPE: ${{ inputs.build_type }}
 
@@ -80,9 +71,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.RELEASE_TAG }}
-          name: "Seeed Yocto multi-machine build ${{ steps.meta.outputs.RELEASE_TAG }}"
+          name: "Seeed Yocto images build ${{ steps.meta.outputs.RELEASE_TAG }}"
           files: |
-            aggregated/**
+            aggregated/*.mender.wic.bz2
+            aggregated/*.mender.mender
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

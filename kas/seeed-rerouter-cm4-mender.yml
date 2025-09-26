@@ -1,36 +1,10 @@
 header:
   version: 14
   includes:
-  - ../meta-mender-community/kas/include/mender-base.yml
+  - ../meta-mender-community/kas/include/mender-full.yml
+  - ../meta-mender-community/kas/include/raspberrypi.yml
 
 repos:
-  # Repository paths relative to workspace root
-  poky:
-    path: layers/poky
-    branch: scarthgap
-  
-  meta-openembedded:
-    path: layers/meta-openembedded
-    branch: scarthgap
-  
-  meta-mender:
-    path: layers/meta-mender
-    branch: scarthgap
-  
-  meta-raspberrypi:
-    path: layers/meta-raspberrypi
-    branch: scarthgap
-  
-  meta-lts-mixins:
-    path: layers/meta-lts-mixins
-    commit: a44882db02a0ed0f149371831bfbe067665eb42b
-  
-  meta-mender-community:
-    path: layers/meta-mender-community
-    branch: scarthgap
-    layers:
-      meta-mender-raspberrypi:
-  
   meta-seeed-cm4:
     path: layers/meta-seeed-cm4
     branch: main
@@ -38,16 +12,6 @@ repos:
 machine: seeed-rerouter-cm4-mender
 
 local_conf_header:
-  mender-full: |
-    INHERIT += "mender-full"
-  
-  raspberrypi: |
-    RPI_USE_U_BOOT = "1"
-    ENABLE_UART = "1"
-    MENDER_BOOT_PART_SIZE_MB = "100"
-    IMAGE_INSTALL:append = " kernel-image kernel-devicetree userlandtools"
-    IMAGE_FSTYPES:remove = " rpi-sdimg"
-  
   seeed-rerouter-cm4: |
     # Seeed reRouter CM4 specific configurations
     PREFERRED_VERSION_linux-raspberrypi ?= "6.12%"
