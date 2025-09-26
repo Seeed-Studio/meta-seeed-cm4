@@ -17,71 +17,105 @@ on:
       clean_build:
         type: boolean
         description: 'Force clean build for all machines'
-        default: false
+        default: true
+      tag_name:
+        description: 'Tag name'
+        required: true
+        default: 'v1.0.0'
+        type: string
 
 jobs:
-  build-matrix:
-    name: Build ${{ matrix.machine }}
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        machine:
-          - seeed-recomputer-r100x-mender
-          - seeed-reterminal-mender
-          - seeed-reterminal-DM-mender
-          - seeed-rerouter-cm4-mender
-          - seeed-recomputer-r2x-mender
-    uses: ./.github/workflows/seeed-boards.yml
-    with:
-      machine: ${{ matrix.machine }}
-      build_type: ${{ inputs.build_type }}
-      disable_upload_downloads: ${{ inputs.disable_upload_downloads }}
-      clean_build: ${{ inputs.clean_build }}
-
-  aggregate-release:
-    name: Aggregate artifacts & Release
-    needs: build-matrix
-    if: always()
-    runs-on: ubuntu-24.04
+  Build-all-images:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
     steps:
-      - name: Prepare workspace
-        run: mkdir -p aggregated
-
-      - name: Download per-machine artifacts
-        uses: actions/download-artifact@v5
-        with:
-          path: aggregated
-
-      - name: List downloaded artifacts
+      - name: Check tag
+        id: check_tag
         run: |
-          echo "Downloaded artifact structure:" || true
-          find aggregated -maxdepth 4 -type f | head -200 || true
+          if [[ ${{ github.event_name }} == 'workflow_dispatch' ]]; then
+           echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_ENV
+          elif [[ ${{ github.event_name }} == 'create' ]]; then
+           echo "TAG_NAME=${{ github.ref }}" >> $GITHUB_ENV
+          fi
 
-
-      - name: Compute release metadata
-        id: meta
-        run: |
-          # Date format: yyyy-mm-dd-ss (UTC)
-          RELEASE_TAG=$(date -u +"%Y-%m-%d-%S")
-          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_OUTPUT
-        env:
-          BUILD_TYPE: ${{ inputs.build_type }}
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.meta.outputs.RELEASE_TAG }}
-          name: "Seeed Yocto images build ${{ steps.meta.outputs.RELEASE_TAG }}"
-          files: |
-            aggregated/*.mender.wic.bz2
-            aggregated/*.mender.mender
+      - name: Creat release
+        id: create_release
+        uses: actions/create-release@v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          release_name: Release ${{ env.TAG_NAME }}
+          draft: false
 
-      - name: Summary
-        run: |
-          echo "# Multi-machine Build Release" >> $GITHUB_STEP_SUMMARY
-          echo "Tag: ${{ steps.meta.outputs.RELEASE_TAG }}" >> $GITHUB_STEP_SUMMARY
-          echo "Included machines:" >> $GITHUB_STEP_SUMMARY
-          cat aggregated/BUILD_SUMMARY.txt >> $GITHUB_STEP_SUMMARY
+      - name: build seeed-recomputer-r100x image
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+          workflow: seeed-yocto-boards-build
+          token: ${{ secrets.GITHUB_TOKEN }}
+          inputs: >-
+                {
+                    "machine": "seeed-recomputer-r100x-mender", 
+                    "build_type": "${{ inputs.build_type }}", 
+                    "disable_upload_downloads": ${{ inputs.disable_upload_downloads }}, 
+                    "clean_build": ${{ inputs.clean_build }}, 
+                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                }
+
+      - name: build seeed-reterminal image
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+            workflow: seeed-yocto-boards-build
+            token: ${{ secrets.GITHUB_TOKEN }}
+            inputs: >-
+                {
+                    "machine": "seeed-reterminal-mender",
+                    "build_type": "${{ inputs.build_type }}",
+                    "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
+                    "clean_build": ${{ inputs.clean_build }},
+                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                }
+
+      - name: build seeed-reterminal-DM image
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+            workflow: seeed-yocto-boards-build
+            token: ${{ secrets.GITHUB_TOKEN }}
+            inputs: >-
+                {
+                    "machine": "seeed-reterminal-DM-mender",
+                    "build_type": "${{ inputs.build_type }}",
+                    "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
+                    "clean_build": ${{ inputs.clean_build }},
+                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                }
+
+      - name: build seeed-rerouter-cm4 image
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+            workflow: seeed-yocto-boards-build
+            token: ${{ secrets.GITHUB_TOKEN }}
+            inputs: >-
+                {
+                    "machine": "seeed-rerouter-cm4-mender",
+                    "build_type": "${{ inputs.build_type }}",
+                    "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
+                    "clean_build": ${{ inputs.clean_build }},
+                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                }
+
+      - name: build seeed-recomputer-r2x image
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+            workflow: seeed-yocto-boards-build
+            token: ${{ secrets.GITHUB_TOKEN }}
+            inputs: >-
+                {
+                    "machine": "seeed-recomputer-r2x-mender",
+                    "build_type": "${{ inputs.build_type }}",
+                    "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
+                    "clean_build": ${{ inputs.clean_build }},
+                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                }

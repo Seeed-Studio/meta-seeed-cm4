@@ -41,33 +41,10 @@ on:
         type: boolean
         description: 'Clean build (ignore sstate cache)'
         default: false
-  workflow_call:
-    inputs:
-      machine:
-        required: true
-        type: string
-      build_type:
+      release_url:
+        description: "Release upload URL"
         required: false
-        type: string
-        default: development
-      disable_upload_downloads:
-        required: false
-        type: boolean
-        default: true
-      clean_build:
-        required: false
-        type: boolean
-        default: false
-    outputs:
-      build-success:
-        description: Build success flag
-        value: ${{ jobs.build-yocto-image.outputs.build-success }}
-      build-id:
-        description: Build ID
-        value: ${{ jobs.build-yocto-image.outputs.build-id }}
-      machine:
-        description: Machine name
-        value: ${{ jobs.build-yocto-image.outputs.machine }}
+        default: ''
 
 env:
   LANG: "en_US.UTF-8"
@@ -276,7 +253,7 @@ jobs:
           retention-days: 1
 
   build-yocto-image:
-    name: Build Yocto Image with KAS
+    name: Build ${{ inputs.machine }} Image with KAS
     runs-on: ubuntu-24.04
     timeout-minutes: 480  # 8 hours timeout
     needs: [download-sstate-cache, download-shared-cache]
@@ -694,8 +671,8 @@ jobs:
             echo "Found deploy directory: $DEPLOY_DIR"
             ls -la "$DEPLOY_DIR"
             # cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
-            cp -f $DEPLOY_DIR/*.wic.bz2 ${{ github.workspace }}/release/ || echo "No matching images found to copy"
-            cp -f $DEPLOY_DIR/*.mender ${{ github.workspace }}/release/ || echo "No matching mender found to copy"
+            cp -f $DEPLOY_DIR/*mender.wic.bz2 ${{ github.workspace }}/release/ || echo "No matching images found to copy"
+            cp -f $DEPLOY_DIR/*mender.mender ${{ github.workspace }}/release/ || echo "No matching mender found to copy"
           fi
           
           # Create build information file
@@ -1124,3 +1101,16 @@ jobs:
           echo "Cleaning up workspace..."
           # Show final disk usage
           df -h
+
+  upload-release:
+    name: Upload GitHub Release
+    runs-on: ubuntu-24.04
+    needs: build-yocto-image
+    if: always() && needs.build-yocto-image.outputs.build-success == 'true' && inputs.release_url != ''
+
+    steps:
+      - name: Upload release assets
+        uses: actions/upload-release-asset@v1.0.2
+        with:
+          upload_url: ${{ inputs.release_url }}
+          asset_path: ${{ github.workspace }}/release/*
