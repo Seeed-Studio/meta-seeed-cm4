@@ -24,6 +24,7 @@ jobs:
     name: Build ${{ matrix.machine }}
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         machine:
           - seeed-recomputer-r100x-mender
