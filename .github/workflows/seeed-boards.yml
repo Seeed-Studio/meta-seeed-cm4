@@ -737,9 +737,7 @@ jobs:
           if [ -d "$DEPLOY_DIR" ]; then
             echo "Found deploy directory: $DEPLOY_DIR"
             ls -la "$DEPLOY_DIR"
-            # cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
-            cp -f $DEPLOY_DIR/*.wic.bz2 ${{ github.workspace }}/release/ || echo "No matching images found to copy"
-            cp -f $DEPLOY_DIR/*.mender ${{ github.workspace }}/release/ || echo "No matching mender found to copy"
+            cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
           fi
           
           # Create build information file
