@@ -41,8 +41,8 @@ on:
         type: boolean
         description: 'Clean build (ignore sstate cache)'
         default: false
-      release_url:
-        description: "Release upload URL"
+      tag_name:
+        description: "Release tag name"
         required: false
         default: ''
 
@@ -673,6 +673,7 @@ jobs:
             # cp -rf "$DEPLOY_DIR" ${{ github.workspace }}/release/
             cp -f $DEPLOY_DIR/*mender.wic.bz2 ${{ github.workspace }}/release/ || echo "No matching images found to copy"
             cp -f $DEPLOY_DIR/*mender.mender ${{ github.workspace }}/release/ || echo "No matching mender found to copy"
+            cp -f $DEPLOY_DIR/*mender.sdimg ${{ github.workspace }}/release/ || echo "No matching sdimg images found to copy"
           fi
           
           # Create build information file
@@ -705,6 +706,20 @@ jobs:
           path: ${{ github.workspace }}/release/
           retention-days: 30
 
+      - name: Upload release assets
+        if: steps.build_step.outputs.build-success == 'true' && inputs.tag_name != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ls ${{ github.workspace }}/release/* >/dev/null 2>&1; then
+            echo "Uploading release assets to GitHub Release..."
+            tar --format=posix --sort=name --mtime=0 -czf ${{ github.workspace }}/${{ inputs.machine }}-image.tar.gz -C ${{ github.workspace }}/release .
+            gh release upload ${{ inputs.tag_name }} ${{ github.workspace }}/${{ inputs.machine }}-image.tar.gz --clobber --repo ${{ github.repository }}
+            echo "Release assets uploaded successfully"
+          else
+            echo "No release files found to upload"
+          fi
 
       - name: Prepare updated sstate cache for upload
         if: steps.build_step.outputs.build-success == 'true'
@@ -1101,16 +1116,3 @@ jobs:
           echo "Cleaning up workspace..."
           # Show final disk usage
           df -h
-
-  upload-release:
-    name: Upload GitHub Release
-    runs-on: ubuntu-24.04
-    needs: build-yocto-image
-    if: always() && needs.build-yocto-image.outputs.build-success == 'true' && inputs.release_url != ''
-
-    steps:
-      - name: Upload release assets
-        uses: actions/upload-release-asset@v1.0.2
-        with:
-          upload_url: ${{ inputs.release_url }}
-          asset_path: ${{ github.workspace }}/release/*

@@ -9,7 +9,7 @@ on:
         options:
           - development
           - production
-        default: 'development'
+        default: 'production'
       disable_upload_downloads:
         type: boolean
         description: 'Disable upload of downloads cache (per machine workflow still can use existing cache)'
@@ -17,7 +17,7 @@ on:
       clean_build:
         type: boolean
         description: 'Force clean build for all machines'
-        default: true
+        default: false
       tag_name:
         description: 'Tag name'
         required: true
@@ -49,6 +49,19 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           release_name: Release ${{ env.TAG_NAME }}
           draft: false
+          body: |
+            # Yocto Image Build for SEEED Boards
+            **Build Information:**
+            - Commit: `${{ github.sha }}`
+            
+            **Files:**
+            This release contains the Yocto image for device.
+            
+            **Installation:**
+            Flash the `.img` or `.wic` file to an SD card or eMMC storage using balenaEtcher, dd, or similar tools.
+            
+            ---
+            *Built with GitHub Actions using KAS automation*
 
       - name: build seeed-recomputer-r100x image
         uses: benc-uk/workflow-dispatch@v1.1
@@ -61,7 +74,7 @@ jobs:
                     "build_type": "${{ inputs.build_type }}", 
                     "disable_upload_downloads": ${{ inputs.disable_upload_downloads }}, 
                     "clean_build": ${{ inputs.clean_build }}, 
-                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                    "tag_name": "${{ env.TAG_NAME }}"
                 }
 
       - name: build seeed-reterminal image
@@ -75,7 +88,7 @@ jobs:
                     "build_type": "${{ inputs.build_type }}",
                     "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
                     "clean_build": ${{ inputs.clean_build }},
-                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                    "tag_name": "${{ env.TAG_NAME }}"
                 }
 
       - name: build seeed-reterminal-DM image
@@ -89,7 +102,7 @@ jobs:
                     "build_type": "${{ inputs.build_type }}",
                     "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
                     "clean_build": ${{ inputs.clean_build }},
-                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                    "tag_name": "${{ env.TAG_NAME }}"
                 }
 
       - name: build seeed-rerouter-cm4 image
@@ -103,7 +116,7 @@ jobs:
                     "build_type": "${{ inputs.build_type }}",
                     "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
                     "clean_build": ${{ inputs.clean_build }},
-                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                    "tag_name": "${{ env.TAG_NAME }}"
                 }
 
       - name: build seeed-recomputer-r2x image
@@ -117,5 +130,5 @@ jobs:
                     "build_type": "${{ inputs.build_type }}",
                     "disable_upload_downloads": ${{ inputs.disable_upload_downloads }},
                     "clean_build": ${{ inputs.clean_build }},
-                    "release_url": "${{ steps.create_release.outputs.upload_url }}"
+                    "tag_name": "${{ env.TAG_NAME }}"
                 }
