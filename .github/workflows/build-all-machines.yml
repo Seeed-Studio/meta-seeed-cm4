@@ -53,6 +53,8 @@ jobs:
             # Yocto Image Build for SEEED Boards
             **Build Information:**
             - Commit: `${{ github.sha }}`
+            - Image user name: "root"
+            - Image user password: "seeed"
             
             **Files:**
             This release contains the Yocto image for device.
