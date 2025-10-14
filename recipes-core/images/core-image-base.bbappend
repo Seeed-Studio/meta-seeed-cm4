@@ -9,7 +9,6 @@ IMAGE_INSTALL:append = " \
     git \
     watchdog \
     bluez5 \
-    bluetooth \
     wireless-tools \
     wpasupplicant \
     network-manager \
