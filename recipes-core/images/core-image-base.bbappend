@@ -6,10 +6,6 @@ IMAGE_INSTALL:append = " \
 	i2c-tools \
 	iperf3 \
     v4l2-test-git \
-    git \
-    watchdog \
-	usbutils \
-    can-utils \
     	"
 
 
