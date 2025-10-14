@@ -9,9 +9,6 @@ IMAGE_INSTALL:append = " \
     git \
     watchdog \
     bluez5 \
-    wireless-tools \
-    wpasupplicant \
-    network-manager \
     can-utils \
 	usbutils \
     	"
