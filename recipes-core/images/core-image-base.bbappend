@@ -15,6 +15,7 @@ IMAGE_INSTALL:append = " \
     wpasupplicant \
     network-manager \
     can-utils \
+	usbutils \
     	"
 
 
