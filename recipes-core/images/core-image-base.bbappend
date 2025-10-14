@@ -8,9 +8,6 @@ IMAGE_INSTALL:append = " \
     v4l2-test-git \
     git \
     watchdog \
-    bluez5 \
-    can-utils \
-	usbutils \
     	"
 
 
