@@ -5,8 +5,18 @@ IMAGE_FEATURES:append = " \
 IMAGE_INSTALL:append = " \
 	i2c-tools \
 	iperf3 \
-    	v4l2-test-git \
+    v4l2-test-git \
+    git \
+    watchdog \
+    bluez \
+    bluez-tools \
+    bluetooth \
+    wireless-tools \
+    wpasupplicant \
+    network-manager \
+    can-utils \
     	"
+
 
 IMAGE_INSTALL:append:dual-gbe-cm4 = "kernel-module-lan7800"
 IMAGE_INSTALL:append:dual-gbe-cm4-mender = "kernel-module-lan7800"
