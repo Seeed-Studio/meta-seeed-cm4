@@ -9,6 +9,7 @@ IMAGE_INSTALL:append = " \
     git \
     watchdog \
 	usbutils \
+    can-utils \
     	"
 
 
