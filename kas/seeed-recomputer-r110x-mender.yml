@@ -1,0 +1,112 @@
+header:
+  version: 14
+
+distro: poky
+
+repos:
+  openembedded-core:
+    url: git://git.openembedded.org/openembedded-core.git
+    branch: scarthgap
+    path: layers/openembedded-core
+    layers:
+      meta:
+
+  bitbake:
+    url: git://git.openembedded.org/bitbake.git
+    commit: 1c9ec1ffde75809de34c10d3ec2b40d84d258cb4
+    path: layers/bitbake
+    layers:
+      bitbake: disabled
+
+  meta-yocto:
+    url: git://git.yoctoproject.org/git/meta-yocto.git
+    branch: scarthgap
+    path: layers/meta-yocto
+    layers:
+      meta-poky:
+      meta-yocto-bsp:
+
+  meta-openembedded:
+    url: git://git.openembedded.org/meta-openembedded
+    branch: scarthgap
+    path: layers/meta-openembedded
+    layers:
+      meta-oe:
+
+  meta-mender:
+    url: https://github.com/mendersoftware/meta-mender.git
+    branch: scarthgap
+    path: layers/meta-mender
+    layers:
+      meta-mender-core:
+  
+  meta-raspberrypi:
+    url: https://github.com/agherzan/meta-raspberrypi.git
+    branch: scarthgap
+    path: layers/meta-raspberrypi
+
+  meta-lts-mixins:
+    url: https://git.yoctoproject.org/meta-lts-mixins
+    branch: scarthgap/u-boot
+    path: layers/meta-lts-mixins
+
+  meta-mender-community:
+    url: https://github.com/mendersoftware/meta-mender-community.git
+    branch: scarthgap
+    path: layers/meta-mender-community
+    layers:
+      meta-mender-raspberrypi:
+
+  meta-seeed-cm4:
+    path: layers/meta-seeed-cm4
+    branch: main
+
+machine: seeed-recomputer-r110x-mender
+
+local_conf_header:
+  base: |
+    CONF_VERSION = "2"
+    PACKAGE_CLASSES = "package_ipk"
+    INIT_MANAGER = "systemd"
+
+  mender-artifact: |
+    MENDER_ARTIFACT_NAME = "gha_autobuild"
+
+  mender-full: |
+    INHERIT += "mender-full"
+  
+  raspberrypi: |
+    RPI_USE_U_BOOT = "1"
+    ENABLE_UART = "1"
+    MENDER_BOOT_PART_SIZE_MB = "100"
+    IMAGE_INSTALL:append = " kernel-image kernel-devicetree userlandtools"
+    IMAGE_FSTYPES:remove = " rpi-sdimg"
+  
+  seeed-recomputer: |
+    # Seeed reComputer R110x specific configurations
+    PREFERRED_VERSION_linux-raspberrypi ?= "6.12%"
+  
+    # Enable I2C and UART
+    KERNEL_MODULE_AUTOLOAD:rpi += "i2c-dev"
+    ENABLE_I2C = "1"
+    ENABLE_UART = "1"
+    
+    # Install seeed-linux-dtoverlays package for reComputer-R110x.dtbo
+    IMAGE_INSTALL:append = " seeed-linux-dtoverlays"
+
+    # Enable SSH server with openssh
+    IMAGE_FEATURES:append = " ssh-server-openssh"
+    
+    # Copy reComputer-R110x.dtbo to boot partition overlays directory
+    # This ensures the dtbo file is available in the boot partition for U-Boot to load
+    IMAGE_BOOT_FILES:append = " reComputer-R110x.dtbo;overlays/reComputer-R110x.dtbo"
+    
+    # Mender specific configurations for reComputer R110x
+    MENDER_ARTIFACT_NAME = "recomputer-r110x-release-1"
+    MENDER_BOOT_PART_SIZE_MB = "64"
+    MENDER_STORAGE_TOTAL_SIZE_MB = "2048"
+    MENDER_FEATURES_ENABLE:append = " mender-uboot mender-image-sd"
+    MENDER_FEATURES_DISABLE:append = " mender-grub mender-image-uefi"
+
+target:
+  - core-image-minimal

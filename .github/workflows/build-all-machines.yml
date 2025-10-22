@@ -79,6 +79,20 @@ jobs:
                     "tag_name": "${{ env.TAG_NAME }}"
                 }
 
+      - name: build seeed-recomputer-r110x image
+        uses: benc-uk/workflow-dispatch@v1.1
+        with:
+          workflow: seeed-yocto-boards-build
+          token: ${{ secrets.GITHUB_TOKEN }}
+          inputs: >-
+                {
+                    "machine": "seeed-recomputer-r110x-mender", 
+                    "build_type": "${{ inputs.build_type }}", 
+                    "disable_upload_downloads": ${{ inputs.disable_upload_downloads }}, 
+                    "clean_build": ${{ inputs.clean_build }}, 
+                    "tag_name": "${{ env.TAG_NAME }}"
+                }
+
       - name: build seeed-reterminal image
         uses: benc-uk/workflow-dispatch@v1.1
         with:

@@ -21,6 +21,7 @@ on:
         description: 'Target device to build'
         options:
           - seeed-recomputer-r100x-mender
+          - seeed-recomputer-r110x-mender
           - seeed-reterminal-mender
           - seeed-reterminal-DM-mender
           - seeed-rerouter-cm4-mender
@@ -167,6 +168,9 @@ jobs:
           case "${{ inputs.machine }}" in
             "seeed-recomputer-r100x-mender")
               KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
+              ;;
+            "seeed-recomputer-r110x-mender")
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r110x-mender.yml"
               ;;
             "seeed-reterminal-mender")
               KAS_FILE="layers/meta-seeed-cm4/kas/seeed-reterminal-mender.yml"
@@ -398,6 +402,10 @@ jobs:
             "seeed-recomputer-r100x-mender")
               IMAGE_NAME="core-image-minimal-seeed-recomputer-r100x-mender"
               KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
+              ;;
+            "seeed-recomputer-r110x-mender")
+              IMAGE_NAME="core-image-minimal-seeed-recomputer-r110x-mender"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r110x-mender.yml"
               ;;
             "seeed-reterminal-mender")
               IMAGE_NAME="core-image-minimal-seeed-reterminal-mender"

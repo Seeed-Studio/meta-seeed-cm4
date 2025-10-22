@@ -7,6 +7,7 @@ This meta layer supports the following Seeed Studio devices:
 - **seeed-reterminal**: reTerminal (Raspberry Pi CM4)
 - **seeed-reterminal-DM**: reTerminal DM (Raspberry Pi CM4)
 - **seeed-recomputer-r100x**: reComputer R100x (Raspberry Pi CM4)
+- **seeed-recomputer-r110x**: reComputer R110x (Raspberry Pi CM4)
 - **seeed-rerouter-cm4**: reRouter CM4 (Raspberry Pi CM4)
 - **seeed-recomputer-r2x**: reComputer R2x (Raspberry Pi 5)
 
@@ -42,6 +43,7 @@ Please see the GitHub Actions workflow file:
 You can build images for supported devices using the KAS configuration files in the `kas/` directory:
 
 - `seeed-recomputer-r100x-mender.yml`: reComputer R100x with Mender
+- `seeed-recomputer-r110x-mender.yml`: reComputer R110x with Mender
 - `seeed-reterminal-mender.yml`: reTerminal with Mender  
 - `seeed-reterminal-DM-mender.yml`: reTerminal DM with Mender
 - `seeed-rerouter-cm4-mender.yml`: reRouter CM4 with Mender

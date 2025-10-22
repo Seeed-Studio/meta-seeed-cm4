@@ -28,6 +28,10 @@ do_deploy:append() {
         grep -q "^dtoverlay=i2c6,pins_22_23$" $CONFIG || echo "dtoverlay=i2c6,pins_22_23" >> $CONFIG
         grep -q "^dtoverlay=audremap,pins_18_19$" $CONFIG || echo "dtoverlay=audremap,pins_18_19" >> $CONFIG
         grep -q "^dtoverlay=reComputer-R100x,uart2$" $CONFIG || echo "dtoverlay=reComputer-R100x,uart2" >> $CONFIG
+    elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r110x-mender', 'true', 'false', d)} \
+        || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r110x', 'true', 'false', d)}; then
+        grep -q "^dtparam=i2c_arm=on$" $CONFIG || echo "dtparam=i2c_arm=on" >> $CONFIG
+        grep -q "^dtoverlay=reComputer-R110x$" $CONFIG || echo "dtoverlay=reComputer-R110x" >> $CONFIG
     elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
         || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} ; then
         grep -q "^dtoverlay=reComputer-R2x$" $CONFIG || echo "dtoverlay=reComputer-R2x" >> $CONFIG
