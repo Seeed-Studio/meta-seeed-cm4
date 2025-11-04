@@ -10,6 +10,7 @@ This meta layer supports the following Seeed Studio devices:
 - **seeed-recomputer-r110x**: reComputer R110x (Raspberry Pi CM4)
 - **seeed-rerouter-cm4**: reRouter CM4 (Raspberry Pi CM4)
 - **seeed-recomputer-r2x**: reComputer R2x (Raspberry Pi 5)
+- **seeed-recomputer-r22**: reComputer R22 (Raspberry Pi 5)
 
 Each device has both standard and Mender-enabled variants for OTA updates.
 
@@ -48,6 +49,7 @@ You can build images for supported devices using the KAS configuration files in 
 - `seeed-reterminal-DM-mender.yml`: reTerminal DM with Mender
 - `seeed-rerouter-cm4-mender.yml`: reRouter CM4 with Mender
 - `seeed-recomputer-r2x-mender.yml`: reComputer R2x with Mender
+- `seeed-recomputer-r22-mender.yml`: reComputer R22 with Mender
 
 After several hours of compiling, you can get the image in `build/tmp/deploy/images/<machine-name>/` with `.wic.bz2` suffix.
 
