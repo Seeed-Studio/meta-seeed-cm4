@@ -26,6 +26,7 @@ on:
           - seeed-reterminal-DM-mender
           - seeed-rerouter-cm4-mender
           - seeed-recomputer-r2x-mender
+          - seeed-recomputer-r22-mender
         default: 'seeed-recomputer-r100x-mender'
       build_type:
         type: choice
@@ -183,6 +184,9 @@ jobs:
               ;;
             "seeed-recomputer-r2x-mender")
               KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r2x-mender.yml"
+              ;;
+            "seeed-recomputer-r22-mender")
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r22-mender.yml"
               ;;
             *)
               KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r100x-mender.yml"
@@ -422,6 +426,10 @@ jobs:
             "seeed-recomputer-r2x-mender")
               IMAGE_NAME="core-image-minimal-seeed-recomputer-r2x-mender"
               KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r2x-mender.yml"
+              ;;
+            "seeed-recomputer-r22-mender")
+              IMAGE_NAME="core-image-minimal-seeed-recomputer-r22-mender"
+              KAS_FILE="layers/meta-seeed-cm4/kas/seeed-recomputer-r22-mender.yml"
               ;;
             *)
               IMAGE_NAME="core-image-minimal-${{ inputs.machine }}"
