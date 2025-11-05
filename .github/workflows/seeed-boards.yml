@@ -656,15 +656,9 @@ jobs:
           # Extract build information from Yocto
           cd ${{ github.workspace }}/build
           
-          # Try to get version information from build
-          if [ -f "conf/local.conf" ]; then
-            DISTRO_VERSION=$(grep -E "^DISTRO_VERSION" conf/local.conf | cut -d'"' -f2 || echo "unknown")
-            MACHINE_VERSION=$(grep -E "^MACHINE" conf/local.conf | cut -d'"' -f2 || echo "${{ inputs.machine }}")
-          else
-            DISTRO_VERSION="unknown"
-            MACHINE_VERSION="${{ inputs.machine }}"
-          fi
-          
+          DISTRO_VERSION="unknown"
+          MACHINE_VERSION="${{ inputs.machine }}"
+
           echo "DISTRO_VERSION=$DISTRO_VERSION" >> $GITHUB_OUTPUT
           echo "MACHINE_VERSION=$MACHINE_VERSION" >> $GITHUB_OUTPUT
           echo "MACHINE=${{ inputs.machine }}" >> $GITHUB_OUTPUT
