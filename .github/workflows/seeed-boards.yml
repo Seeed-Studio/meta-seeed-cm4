@@ -259,7 +259,20 @@ jobs:
           name: downloads-cache
           path: ${{ github.workspace }}/yocto-download.tar
           retention-days: 1
-
+      
+      - name: Upload downloads to rclone
+        if: steps.fetchall_check.outputs.downloads-available == 'true'
+        run: |
+          echo "Uploading downloads cache to rclone..."
+          
+          if rclone copyto -P --stats 1m ${{ github.workspace }}/yocto-download.tar \
+            seeed-storage:yocto-cache/scarthgap/yocto-download.tar \
+            --update; then
+            echo "downloads cache uploaded successfully"
+          else
+            echo "Failed to upload downloads cache"
+          fi
+          
   build-yocto-image:
     name: Build ${{ inputs.machine }} Image with KAS
     runs-on: ubuntu-24.04
@@ -821,8 +834,8 @@ jobs:
           echo "Preparing downloads cache for upload..."
           if [ -d "${{ github.workspace }}/build/downloads" ] && [ "$(ls -A ${{ github.workspace }}/build/downloads)" ]; then
             # Create tar archive of updated downloads cache
-            tar --format=posix --sort=name --mtime=0 -cf ${{ github.workspace }}/updated-yocto-download.tar \
-              -C ${{ github.workspace }}/build/downloads .
+            tar --format=posix --sort=name --mtime=0 -cf ./updated-yocto-download.tar \
+              -C ./build/downloads .
             echo "downloads cache archive created: $(ls -lh ${{ github.workspace }}/updated-yocto-download.tar)"
           else
             echo "No downloads cache to prepare for upload"
