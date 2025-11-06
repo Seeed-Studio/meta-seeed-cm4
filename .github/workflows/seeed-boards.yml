@@ -737,7 +737,7 @@ jobs:
           echo "Preparing sstate cache for upload..."
           
           # Clean up sstate cache before packaging
-          if [ -f "${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.py" ]; then
+          if [ -f "${{ github.workspace }}/layers/openembedded-core/scripts/sstate-cache-management.py" ]; then
             echo "Cleaning up sstate cache..."
             
             # Show sstate-cache size before cleanup
@@ -747,7 +747,7 @@ jobs:
             # Clean unused cache files
             echo "Cleaning unused sstate cache files..."
             if [ -d "${{ github.workspace }}/build/tmp/stamps" ]; then
-              python3 ${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.py -y -v \
+              python3 ${{ github.workspace }}/layers/openembedded-core/scripts/sstate-cache-management.py -y -v \
                 --cache-dir=${{ github.workspace }}/build/sstate-cache/ \
                 --stamps-dir=${{ github.workspace }}/build/tmp/stamps || {
                 echo "⚠️ WARNING: Failed to clean unused sstate cache files"
@@ -758,7 +758,7 @@ jobs:
             
             # Clean duplicated cache files
             echo "Cleaning duplicated sstate cache files..."
-            python3 ${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.py -y -v \
+            python3 ${{ github.workspace }}/layers/openembedded-core/scripts/sstate-cache-management.py -y -v \
               --cache-dir=${{ github.workspace }}/build/sstate-cache/ \
               --remove-duplicated || {
               echo "⚠️ WARNING: Failed to clean duplicated sstate cache files"
@@ -766,7 +766,7 @@ jobs:
             
             # Remove orphan siginfo files
             echo "Removing orphan siginfo files..."
-            python3 ${{ github.workspace }}/layers/poky/scripts/sstate-cache-management.py -y -v \
+            python3 ${{ github.workspace }}/layers/openembedded-core/scripts/sstate-cache-management.py -y -v \
               --cache-dir=${{ github.workspace }}/build/sstate-cache/ \
               --remove-orphans || {
               echo "⚠️ WARNING: Failed to remove orphan siginfo files"
