@@ -98,10 +98,10 @@ local_conf_header:
     
     # Install seeed-linux-dtoverlays package for reComputer-R100x.dtbo
     IMAGE_INSTALL:append = " seeed-linux-dtoverlays"
-    IMAGE_INSTALL:append = " atecc-util sx1302-hal"
 
     # Install required packages
     IMAGE_INSTALL:append = " watchdog"
+    IMAGE_INSTALL:append = " atecc-util sx1302-hal"
 
     # Enable SSH server with openssh
     IMAGE_FEATURES:append = " ssh-server-openssh"
