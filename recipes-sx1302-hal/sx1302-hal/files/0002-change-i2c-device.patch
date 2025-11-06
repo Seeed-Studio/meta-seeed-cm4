@@ -1,0 +1,11 @@
+--- a/libloragw/inc/loragw_i2c.h
++++ b/libloragw/inc/loragw_i2c.h
+@@ -27,7 +27,7 @@
+ #define LGW_I2C_SUCCESS     0
+ #define LGW_I2C_ERROR       -1
+ 
+-#define I2C_DEVICE          "/dev/i2c-1"
++#define I2C_DEVICE          "/dev/i2c-lora"
+ 
+ /* -------------------------------------------------------------------------- */
+ /* --- PUBLIC FUNCTIONS PROTOTYPES ------------------------------------------ */
