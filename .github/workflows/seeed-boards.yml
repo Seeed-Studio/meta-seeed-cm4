@@ -226,7 +226,6 @@ jobs:
           fi
 
       - name: Setup Rclone
-        if: ${{ !inputs.clean_build }}
         uses: AnimMouse/setup-rclone@v1
         with:
           version: v1.67.0
