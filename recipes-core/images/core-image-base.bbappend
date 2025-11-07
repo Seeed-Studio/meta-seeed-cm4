@@ -16,8 +16,8 @@ IMAGE_FEATURES:append = " \
 IMAGE_INSTALL:append = " \
 	kernel-modules \
 	sudo dpkg pkgconfig wget curl nano tmux vim git \
-	minicom iproute2 net-tools i2c-tools spidev-test iperf3 \
-    "
+	minicom iproute2 net-tools i2c-tools spidev-test iperf3 evtest\
+  "
 
 IMAGE_INSTALL:append:dual-gbe-cm4 = "kernel-module-lan7800"
 IMAGE_INSTALL:append:dual-gbe-cm4-mender = "kernel-module-lan7800"

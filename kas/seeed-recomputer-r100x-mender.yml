@@ -103,6 +103,10 @@ local_conf_header:
     # Install required packages
     IMAGE_INSTALL:append = " watchdog"
 
+    # Install required packages
+    IMAGE_INSTALL:append = " watchdog"
+    IMAGE_INSTALL:append = " atecc-util sx1302-hal"
+
     # Enable SSH server with openssh
     IMAGE_FEATURES:append = " ssh-server-openssh"
     
