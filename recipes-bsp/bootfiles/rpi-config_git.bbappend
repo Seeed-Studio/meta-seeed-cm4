@@ -5,7 +5,8 @@ do_deploy:append() {
     grep -q "^enable_uart=1$" $CONFIG || echo "enable_uart=1" >> $CONFIG
 
     if ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} ; then
+        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} \
+        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} ; then
         grep -q "^dtparam=spi=on$" $CONFIG || echo "dtparam=spi=on" >> $CONFIG
     fi
     
@@ -36,6 +37,9 @@ do_deploy:append() {
     elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
         || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} ; then
         grep -q "^dtoverlay=reComputer-R2x$" $CONFIG || echo "dtoverlay=reComputer-R2x" >> $CONFIG
+    elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22', 'true', 'false', d)} \
+        || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} ; then
+        grep -q "^dtoverlay=reComputer-R22$" $CONFIG || echo "dtoverlay=reComputer-R22" >> $CONFIG
     else
         bbdebug 1 "No target device tree specified, check your MACHINE config"
     fi
