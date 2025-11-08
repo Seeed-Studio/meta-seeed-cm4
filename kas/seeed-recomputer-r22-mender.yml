@@ -108,7 +108,7 @@ local_conf_header:
         git cmake \
         tmux vim \
         dpkg pkgconfig \
-        wget curl \
+        wget curl alsa-utils alsa-lib\
         "
 
     # Enable SSH server with openssh
