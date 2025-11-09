@@ -92,10 +92,9 @@ local_conf_header:
     IMAGE_INSTALL:append = " e2fsprogs-resize2fs parted util-linux sudo"
     IMAGE_INSTALL:append = " net-tools iproute2"
     IMAGE_INSTALL:append = " spidev-test can-utils watchdog minicom"
+    IMAGE_INSTALL:append = " hailo-firmware"
 
     IMAGE_INSTALL:append = " \
-        protobuf protobuf-compiler \
-        opencv-dev opencv-staticdev \
         git cmake \
         tmux vim \
         dpkg pkgconfig \
