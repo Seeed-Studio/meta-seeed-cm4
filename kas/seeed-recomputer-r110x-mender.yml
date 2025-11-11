@@ -68,6 +68,7 @@ local_conf_header:
     CONF_VERSION = "2"
     PACKAGE_CLASSES = "package_ipk"
     INIT_MANAGER = "systemd"
+    LICENSE_FLAGS_ACCEPTED = "synaptics-killswitch"
 
   mender-artifact: |
     MENDER_ARTIFACT_NAME = "gha_autobuild"
@@ -94,6 +95,10 @@ local_conf_header:
     # Install seeed-linux-dtoverlays package for reComputer-R110x.dtbo
     IMAGE_INSTALL:append = " seeed-linux-dtoverlays"
 
+    # Install required packages
+    IMAGE_INSTALL:append = " watchdog"
+    IMAGE_INSTALL:append = " atecc-util sx1302-hal"
+
     # Enable SSH server with openssh
     IMAGE_FEATURES:append = " ssh-server-openssh"
     
@@ -109,4 +114,4 @@ local_conf_header:
     MENDER_FEATURES_DISABLE:append = " mender-grub mender-image-uefi"
 
 target:
-  - core-image-minimal
+  - core-image-base
