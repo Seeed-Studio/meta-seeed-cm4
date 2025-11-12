@@ -36,7 +36,7 @@ do_deploy:append() {
         grep -q "^dtoverlay=reComputer-R110x$" $CONFIG || echo "dtoverlay=reComputer-R110x" >> $CONFIG
     elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
         || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} ; then
-        grep -q "^dtoverlay=reComputer-R2x$" $CONFIG || echo "dtoverlay=reComputer-R2x" >> $CONFIG
+        grep -q "^dtoverlay=reComputer-R2x-base$" $CONFIG || echo "dtoverlay=reComputer-R2x-base" >> $CONFIG
     elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22', 'true', 'false', d)} \
         || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} ; then
         grep -q "^dtoverlay=reComputer-R22$" $CONFIG || echo "dtoverlay=reComputer-R22" >> $CONFIG

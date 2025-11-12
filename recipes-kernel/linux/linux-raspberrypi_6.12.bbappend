@@ -10,8 +10,8 @@ do_configure:append(){
         mkdir -p ${WORKDIR}/seeed/
         if ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)}; then
             wget -P ${WORKDIR}/seeed/ \
-                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R2x-overlay.dts
-            cp ${WORKDIR}/seeed/reComputer-R2x-overlay.dts ${S}/arch/arm/boot/dts/overlays/
+                https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R2x-base-overlay.dts
+            cp ${WORKDIR}/seeed/reComputer-R2x-base-overlay.dts ${S}/arch/arm/boot/dts/overlays/
 
             wget -P ${WORKDIR}/seeed/ \
                 https://raw.githubusercontent.com/Seeed-Studio/seeed-linux-dtoverlays/master/overlays/rpi/reComputer-R21-overlay.dts
