@@ -132,8 +132,7 @@ jobs:
           KAS_WORK_DIR: ${{ github.workspace }}
         run: |
           kas build \
-            layers/meta-seeed-cm4/kas/${{ matrix.machine }}.yml \
-            layers/meta-seeed-cm4/kas/ci.yml
+            "layers/meta-seeed-cm4/kas/${{ matrix.machine }}.yml:layers/meta-seeed-cm4/kas/ci.yml"
           df -h /
 
       - name: Upload deploy artifacts
