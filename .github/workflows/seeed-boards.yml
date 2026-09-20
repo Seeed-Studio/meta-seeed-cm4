@@ -160,7 +160,7 @@ jobs:
           else
             echo "sstate-cache-management.py not found, skipping cleanup"
           fi
-          rm -rf build/tmp/work
+          rm -rf build/tmp/work 2>/dev/null || true
           if [ -d build/sstate-cache ] && [ -n "$(ls -A build/sstate-cache)" ]; then
             tar --format=posix --sort=name --mtime=0 -cf \
               "updated-${{ matrix.machine }}.sstate-cache.tar" \
