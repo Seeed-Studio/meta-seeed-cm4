@@ -1,0 +1,8 @@
+# CI overlay: shrink the build directory so the runner disk survives
+# image assembly. Artifacts in tmp/deploy and the sstate cache are kept.
+header:
+  version: 14
+
+local_conf_header:
+  ci: |
+    INHERIT += "rm_work"

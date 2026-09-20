@@ -59,7 +59,6 @@ repos:
 
   meta-seeed-cm4:
     path: layers/meta-seeed-cm4
-    branch: main
 
 machine: seeed-recomputer-r110x-mender
 
