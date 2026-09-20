@@ -145,19 +145,19 @@ jobs:
 
       - name: Prepare updated sstate cache
         run: |
-          if [ -f layers/openembedded-core/scripts/sstate-cache-management.sh ]; then
+          if [ -f layers/openembedded-core/scripts/sstate-cache-management.py ]; then
             if [ -d build/tmp/stamps ]; then
-              layers/openembedded-core/scripts/sstate-cache-management.sh -y -v \
+              python3 layers/openembedded-core/scripts/sstate-cache-management.py -y -v \
                 --cache-dir=build/sstate-cache \
                 --stamps-dir=build/tmp/stamps \
                 || echo "WARNING: unused-sstate cleanup failed"
             fi
-            layers/openembedded-core/scripts/sstate-cache-management.sh -y -v \
+            python3 layers/openembedded-core/scripts/sstate-cache-management.py -y -v \
               --cache-dir=build/sstate-cache \
               --remove-duplicated \
               || echo "WARNING: duplicate-sstate cleanup failed"
           else
-            echo "sstate-cache-management.sh not found, skipping cleanup"
+            echo "sstate-cache-management.py not found, skipping cleanup"
           fi
           rm -rf build/tmp/work
           if [ -d build/sstate-cache ] && [ -n "$(ls -A build/sstate-cache)" ]; then
@@ -220,7 +220,7 @@ jobs:
                  --notes "Automated image build @ ${GITHUB_SHA}" \
             || true
           DEPLOY="build/tmp/deploy/images/${{ matrix.machine }}"
-          files=$(cd "$DEPLOY" && ls -1 *.mender *.sdimg.gz *.wic *.wic.gz *.wic.bz2 2>/dev/null || true)
+          files=$(cd "$DEPLOY" && ls -1 *.mender *.sdimg *.sdimg.gz *.wic *.wic.gz *.wic.bz2 2>/dev/null || true)
           if [ -z "$files" ]; then
             echo "ERROR: no image files found in $DEPLOY"
             exit 1
