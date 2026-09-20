@@ -68,6 +68,7 @@ local_conf_header:
     PACKAGE_CLASSES = "package_ipk"
     INIT_MANAGER = "systemd"
     LICENSE_FLAGS_ACCEPTED = "synaptics-killswitch commercial"
+    INHERIT:remove = "create-spdx"
 
   mender-artifact: |
     MENDER_ARTIFACT_NAME = "gha_autobuild"

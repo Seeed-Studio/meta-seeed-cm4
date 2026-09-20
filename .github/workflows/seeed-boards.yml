@@ -144,6 +144,7 @@ jobs:
           retention-days: 14
 
       - name: Prepare updated sstate cache
+        if: always()
         run: |
           if [ -f layers/openembedded-core/scripts/sstate-cache-management.py ]; then
             if [ -d build/tmp/stamps ]; then
@@ -171,6 +172,7 @@ jobs:
           df -h /
 
       - name: Upload sstate cache
+        if: always()
         run: |
           if [ -f "updated-${{ matrix.machine }}.sstate-cache.tar" ]; then
             rclone copyto -P --stats 1m \
