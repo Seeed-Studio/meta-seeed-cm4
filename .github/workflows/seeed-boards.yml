@@ -128,6 +128,10 @@ jobs:
           df -h /
 
       - name: Build image
+        # Cap the build step below the 360 min job maximum so the sstate
+        # banking steps below run in a live job with a real time budget
+        # instead of the ~5 min post-cancellation grace window.
+        timeout-minutes: 330
         env:
           KAS_WORK_DIR: ${{ github.workspace }}
         run: |
