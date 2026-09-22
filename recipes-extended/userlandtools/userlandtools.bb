@@ -20,7 +20,7 @@ SRCREV = "a54a0dbb2b8dcf9bafdddfc9a9374fb51d97e976"
 # SRCREV is changed.
 PV = "20210111"
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 inherit cmake pkgconfig
 

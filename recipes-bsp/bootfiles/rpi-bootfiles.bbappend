@@ -7,5 +7,5 @@ SRC_URI += "file://dt-blob-disp1-cam2.bin"
 # because the old URL now 404s after the datasheets site migration. Shipping the
 # blob in-layer removes the deploy-time network dependency entirely.
 do_deploy:append() {
-	install -m 0644 ${WORKDIR}/dt-blob-disp1-cam2.bin ${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/dt-blob.bin
+	install -m 0644 ${UNPACKDIR}/dt-blob-disp1-cam2.bin ${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/dt-blob.bin
 }

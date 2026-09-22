@@ -13,7 +13,7 @@ SRCREV_crypto = "${AUTOREV}"
 
 SRCREV_FORMAT = "proxychains_atecc_crypto"
 
-S = "${WORKDIR}"
+S = "${UNPACKDIR}/atecc-util"
 
 DEPENDS = "i2c-tools"
 
@@ -22,17 +22,17 @@ INSANE_SKIP:${PN}-dev = "dev-elf"
 
 do_configure() {
     # Configure proxychains-ng
-    cd ${S}/proxychains-ng
+    cd ${UNPACKDIR}/proxychains-ng
     ./configure --prefix=/usr --sysconfdir=/etc
 }
 
 do_compile() {
     # Build proxychains-ng
-    cd ${S}/proxychains-ng
+    cd ${UNPACKDIR}/proxychains-ng
     oe_runmake
     
     # Build atecc-util
-    cd ${S}/atecc-util
+    cd ${S}
     oe_runmake
 }
 
@@ -43,17 +43,17 @@ do_install() {
     install -d ${D}${sysconfdir}
     
     # Install proxychains binaries
-    install -m 0755 ${S}/proxychains-ng/proxychains4 ${D}${bindir}/
-    install -m 0755 ${S}/proxychains-ng/proxychains4-daemon ${D}${bindir}/
+    install -m 0755 ${UNPACKDIR}/proxychains-ng/proxychains4 ${D}${bindir}/
+    install -m 0755 ${UNPACKDIR}/proxychains-ng/proxychains4-daemon ${D}${bindir}/
     
     # Install proxychains library
-    install -m 0755 ${S}/proxychains-ng/libproxychains4.so ${D}${libdir}/
+    install -m 0755 ${UNPACKDIR}/proxychains-ng/libproxychains4.so ${D}${libdir}/
     
     # Install proxychains config
-    install -m 0644 ${S}/proxychains-ng/src/proxychains.conf ${D}${sysconfdir}/
+    install -m 0644 ${UNPACKDIR}/proxychains-ng/src/proxychains.conf ${D}${sysconfdir}/
     
     # Install atecc-util
-    install -m 0755 ${S}/atecc-util/atecc ${D}${bindir}/
+    install -m 0755 ${S}/atecc ${D}${bindir}/
 }
 
 FILES:${PN} = "${bindir}/* ${libdir}/libproxychains4.so ${sysconfdir}/*"

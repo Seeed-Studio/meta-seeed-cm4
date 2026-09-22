@@ -4,7 +4,7 @@ and control the device of the reterminal"
 HOMEPAGE = "https://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples"
 
 LICENSE = "GPLv3"
-LIC_FILES_CHKSUM = "file://${WORKDIR}/git/LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
+LIC_FILES_CHKSUM = "file://${UNPACKDIR}/git/LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
 
 SRCREV = "${AUTOREV}"
 
@@ -16,7 +16,7 @@ SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples.git;
 	file://seeed_qtdemo.service \
 	"
 
-S = "${WORKDIR}/git"
+S = "${UNPACKDIR}/git"
 
 INSANE_SKIP:${PN} = "file-rdeps"
 
@@ -26,21 +26,21 @@ do_install() {
 	if [ -d ${S}/imports/armv7l ]; then
 		rm -r ${S}/imports/armv7l
 	fi
-	cp -r ${WORKDIR}/git/* ${D}${MY_DESTINATION}
+	cp -r ${UNPACKDIR}/git/* ${D}${MY_DESTINATION}
 
 	# install qtdemo start script for systemd
 	install -d ${D}/var
-	install -m 0755 ${WORKDIR}/S52qtdemo ${D}/var
-	install -m 0755 ${WORKDIR}/S51expand_file_system ${D}/var
+	install -m 0755 ${UNPACKDIR}/S52qtdemo ${D}/var
+	install -m 0755 ${UNPACKDIR}/S51expand_file_system ${D}/var
 
 	# install qtdemo start service
 	install -d ${D}${systemd_unitdir}/system/
-        install -m 0644 ${WORKDIR}/seeed_qtdemo.service ${D}${systemd_unitdir}/system/
+        install -m 0644 ${UNPACKDIR}/seeed_qtdemo.service ${D}${systemd_unitdir}/system/
 
 	# install qtdemo start script for sysvinit
 	install -d ${D}/etc/rc5.d/
-	cp ${WORKDIR}/S52qtdemo ${D}/etc/rc5.d/
-	cp ${WORKDIR}/S51expand_file_system ${D}/etc/rc5.d/
+	cp ${UNPACKDIR}/S52qtdemo ${D}/etc/rc5.d/
+	cp ${UNPACKDIR}/S51expand_file_system ${D}/etc/rc5.d/
 }
 
 FILES:${PN} += "${MY_DESTINATION}/*"

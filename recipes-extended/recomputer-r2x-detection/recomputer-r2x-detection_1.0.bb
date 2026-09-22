@@ -10,7 +10,7 @@ SRC_URI = "file://r21_board_detect.sh \
            file://recomputer-r2x-detection.init \
            file://recomputer-r2x-detection.service"
 
-S = "${WORKDIR}"
+S = "${UNPACKDIR}"
 
 inherit allarch systemd update-rc.d
 
@@ -29,13 +29,13 @@ do_compile () {
 
 do_install() {
 	install -d ${D}${sbindir}
-	install -m 0755 ${WORKDIR}/r21_board_detect.sh ${D}${sbindir}/
+	install -m 0755 ${UNPACKDIR}/r21_board_detect.sh ${D}${sbindir}/
 
 	install -d ${D}${sysconfdir}/init.d/
-	install -m 0755 ${WORKDIR}/recomputer-r2x-detection.init ${D}${sysconfdir}/init.d/recomputer-r2x-detection
+	install -m 0755 ${UNPACKDIR}/recomputer-r2x-detection.init ${D}${sysconfdir}/init.d/recomputer-r2x-detection
 
 	install -d ${D}${systemd_system_unitdir}/
-	install -m 0644 ${WORKDIR}/recomputer-r2x-detection.service ${D}${systemd_system_unitdir}/
+	install -m 0644 ${UNPACKDIR}/recomputer-r2x-detection.service ${D}${systemd_system_unitdir}/
 
 	sed -i -e 's:#SYSCONFDIR#:${sysconfdir}:g' \
                -e 's:#SBINDIR#:${sbindir}:g' \
