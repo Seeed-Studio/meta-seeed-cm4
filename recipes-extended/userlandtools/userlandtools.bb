@@ -25,7 +25,8 @@ inherit cmake pkgconfig
 
 ASNEEDED = ""
 EXTRA_OECMAKE = "-DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS='-Wl,--no-as-needed' \
-                 -DVMCS_INSTALL_PREFIX=${exec_prefix} -DARM64=ON "
+                 -DVMCS_INSTALL_PREFIX=${exec_prefix} -DARM64=ON \
+                 -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 
 # Keep only those libs & bins that are actually
 # used during boot EEPROM image update
