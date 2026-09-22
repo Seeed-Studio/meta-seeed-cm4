@@ -10,7 +10,6 @@ SRC_URI = "git://github.com/Lora-net/sx1302_hal.git;protocol=https;branch=master
           
 SRCREV = "4b42025d1751e04632c0b04160e0d29dbbb222a5"
 
-S = "${UNPACKDIR}/git"
 
 DEPENDS = "libusb1"
 

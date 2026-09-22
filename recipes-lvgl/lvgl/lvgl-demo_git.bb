@@ -15,7 +15,6 @@ SRC_URI = "\
 
 DEPENDS += "libinput"
 
-S = "${UNPACKDIR}/git"
 
 CFLAGS:prepend = "-I${S} "
 

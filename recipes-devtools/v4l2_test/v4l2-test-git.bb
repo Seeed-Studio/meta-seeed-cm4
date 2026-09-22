@@ -13,7 +13,6 @@ SRC_URI = "\
 
 DEPENDS += "glibc"
 
-S = "${UNPACKDIR}/git"
 
 do_compile() {
 		${CC} v4l2_test.c -o v4l2test ${CFLAGS} ${LDFLAGS}

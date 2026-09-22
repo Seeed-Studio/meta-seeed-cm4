@@ -17,7 +17,6 @@ SRC_URI = "git://github.com/Seeed-Studio/seeed-linux-dtoverlays.git;protocol=htt
 
 DEPENDS += " dtc-native"
 
-S = "${UNPACKDIR}/git"
 
 INSANE_SKIP:${PN} = "file-rdeps"
 

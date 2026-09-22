@@ -16,7 +16,6 @@ SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples.git;
 	file://seeed_qtdemo.service \
 	"
 
-S = "${UNPACKDIR}/git"
 
 INSANE_SKIP:${PN} = "file-rdeps"
 

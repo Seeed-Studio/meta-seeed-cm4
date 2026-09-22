@@ -12,7 +12,6 @@ SRC_URI = "git://github.com/Seeed-Studio/Seeed_Python_ReTerminal.git;protocol=ht
 	file://S53python_symlink \
 	"
 
-S = "${UNPACKDIR}/git"
 
 inherit setuptools3
 
