@@ -90,9 +90,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: build/sstate-cache
-          key: yocto-scarthgap-${{ matrix.machine }}-sstate-${{ github.sha }}
+          key: yocto-wrynose-${{ matrix.machine }}-sstate-${{ github.sha }}
           restore-keys: |
-            yocto-scarthgap-${{ matrix.machine }}-sstate-
+            yocto-wrynose-${{ matrix.machine }}-sstate-
           # A miss is a normal cold start; the action only warns.
 
       - name: Build image
@@ -144,7 +144,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: build/sstate-cache
-          key: yocto-scarthgap-${{ matrix.machine }}-sstate-${{ github.sha }}
+          key: yocto-wrynose-${{ matrix.machine }}-sstate-${{ github.sha }}
 
       - name: Upload release assets
         if: ${{ inputs.tag_name != '' }}
