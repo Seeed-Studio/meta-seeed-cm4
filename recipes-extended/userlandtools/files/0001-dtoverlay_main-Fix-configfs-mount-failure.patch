@@ -2,6 +2,7 @@ From 0e749a81e716a08be889e031e22310cf031448e9 Mon Sep 17 00:00:00 2001
 From: Alexandru Costache <alexandru@balena.io>
 Date: Tue, 19 Jan 2021 12:56:11 +0100
 Subject: [PATCH] dtoverlay_main: Fix configfs mount failure
+Upstream-Status: Inappropriate [seeed board specific]
 
 App tries to mount configfs inside /config/device-tree,
 but the configfs already contains device-tree.

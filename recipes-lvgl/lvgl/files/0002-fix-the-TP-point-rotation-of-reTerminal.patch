@@ -2,6 +2,7 @@ From 777bea4aef588c8d7592e20f4b66194f0185b68b Mon Sep 17 00:00:00 2001
 From: bigbearishappy <953308023@qq.com>
 Date: Wed, 25 Aug 2021 11:48:02 +0000
 Subject: [PATCH] fix the TP point rotation of reTerminal
+Upstream-Status: Inappropriate [seeed board specific]
 
 ---
  lvgl/src/core/lv_indev.c | 55 ++++++++++++++++++++++++++++++++++++---------
