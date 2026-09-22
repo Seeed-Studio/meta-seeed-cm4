@@ -22,11 +22,6 @@ on:
         required: false
         type: string
         default: ''
-      disable_upload_downloads:
-        description: Disable uploading the shared downloads cache after single-machine builds
-        required: false
-        type: boolean
-        default: true
 
 concurrency:
   group: yocto-${{ github.workflow }}-${{ github.ref }}
@@ -91,41 +86,14 @@ jobs:
           # Some layer scripts expect bash as /bin/sh.
           sudo rm -f /bin/sh && sudo ln -s bash /bin/sh
 
-      - name: Setup Rclone
-        uses: AnimMouse/setup-rclone@v1
+      - name: Restore Yocto sstate cache
+        uses: actions/cache/restore@v4
         with:
-          version: v1.67.0
-          rclone_config: ${{ secrets.RCLONE_CONFIG }}
-
-      - name: Download sstate cache
-        run: |
-          rclone copy -P --stats 1m \
-            "seeed-storage:yocto-cache/scarthgap/${{ matrix.machine }}.sstate-cache.tar" . \
-            --transfers 8 --checkers 8 --fast-list --ignore-existing || true
-          if [ -f "${{ matrix.machine }}.sstate-cache.tar" ]; then
-            mkdir -p build/sstate-cache
-            tar --no-same-owner -xf "${{ matrix.machine }}.sstate-cache.tar" -C build/sstate-cache
-            rm -f "${{ matrix.machine }}.sstate-cache.tar"
-            echo "sstate cache restored for ${{ matrix.machine }}"
-          else
-            echo "no sstate cache for ${{ matrix.machine }}, cold build"
-          fi
-          df -h /
-
-      - name: Download shared downloads cache
-        run: |
-          rclone copy -P --stats 1m \
-            "seeed-storage:yocto-cache/scarthgap/yocto-download.tar" . \
-            --transfers 8 --checkers 8 --fast-list --ignore-existing || true
-          if [ -f yocto-download.tar ]; then
-            mkdir -p build/downloads
-            tar --no-same-owner -xf yocto-download.tar -C build/downloads
-            rm -f yocto-download.tar
-            echo "downloads cache restored"
-          else
-            echo "no shared downloads cache"
-          fi
-          df -h /
+          path: build/sstate-cache
+          key: yocto-scarthgap-${{ matrix.machine }}-sstate-${{ github.sha }}
+          restore-keys: |
+            yocto-scarthgap-${{ matrix.machine }}-sstate-
+          # A miss is a normal cold start; the action only warns.
 
       - name: Build image
         # Cap the build step below the 360 min job maximum so the sstate
@@ -147,7 +115,9 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-      - name: Prepare updated sstate cache
+      - name: Prune sstate cache
+        # Keep the banked cache small: the actions/cache quota is shared
+        # across all machines in this repository.
         if: always()
         run: |
           if [ -f layers/openembedded-core/scripts/sstate-cache-management.py ]; then
@@ -164,53 +134,17 @@ jobs:
           else
             echo "sstate-cache-management.py not found, skipping cleanup"
           fi
-          rm -rf build/tmp/work 2>/dev/null || true
-          if [ -d build/sstate-cache ] && [ -n "$(ls -A build/sstate-cache)" ]; then
-            tar --format=posix --sort=name --mtime=0 -cf \
-              "updated-${{ matrix.machine }}.sstate-cache.tar" \
-              -C build/sstate-cache .
-            ls -lh "updated-${{ matrix.machine }}.sstate-cache.tar"
-          else
-            echo "no sstate cache to upload"
-          fi
-          df -h /
+          du -sh build/sstate-cache || true
 
-      - name: Upload sstate cache
+      - name: Bank sstate cache
+        # Runs after timeouts and failed builds too, so the next run
+        # resumes warm (two-run convergence). Tolerate an exact-key hit.
         if: always()
-        run: |
-          if [ -f "updated-${{ matrix.machine }}.sstate-cache.tar" ]; then
-            rclone copyto -P --stats 1m \
-              "updated-${{ matrix.machine }}.sstate-cache.tar" \
-              "seeed-storage:yocto-cache/scarthgap/${{ matrix.machine }}.sstate-cache.tar" \
-              --update
-            echo "sstate cache uploaded for ${{ matrix.machine }}"
-          else
-            echo "no sstate cache file to upload"
-          fi
-
-      - name: Prepare updated downloads cache
-        if: ${{ !inputs.disable_upload_downloads && inputs.machine != 'all' }}
-        run: |
-          if [ -d build/downloads ] && [ -n "$(ls -A build/downloads)" ]; then
-            tar --format=posix --sort=name --mtime=0 -cf updated-yocto-download.tar \
-              -C build/downloads .
-            ls -lh updated-yocto-download.tar
-            df -h /
-          else
-            echo "no downloads to upload"
-          fi
-
-      - name: Upload downloads cache
-        if: ${{ !inputs.disable_upload_downloads && inputs.machine != 'all' }}
-        run: |
-          if [ -f updated-yocto-download.tar ]; then
-            rclone copyto -P --stats 1m updated-yocto-download.tar \
-              "seeed-storage:yocto-cache/scarthgap/yocto-download.tar" \
-              --update
-            echo "downloads cache uploaded"
-          else
-            echo "no downloads file to upload"
-          fi
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: build/sstate-cache
+          key: yocto-scarthgap-${{ matrix.machine }}-sstate-${{ github.sha }}
 
       - name: Upload release assets
         if: ${{ inputs.tag_name != '' }}
