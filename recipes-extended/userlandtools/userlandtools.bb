@@ -24,6 +24,9 @@ PV = "20210111"
 inherit cmake pkgconfig
 
 ASNEEDED = ""
+# wrynose's gcc defaults to C23 where empty parameter lists mean (void);
+# this 2021-era code relies on the old unspecified-args semantics.
+CFLAGS:append = " -std=gnu17"
 EXTRA_OECMAKE = "-DCMAKE_BUILD_TYPE=Release -DCMAKE_EXE_LINKER_FLAGS='-Wl,--no-as-needed' \
                  -DVMCS_INSTALL_PREFIX=${exec_prefix} -DARM64=ON \
                  -DCMAKE_POLICY_VERSION_MINIMUM=3.5"

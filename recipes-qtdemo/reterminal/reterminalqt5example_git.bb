@@ -4,7 +4,7 @@ and control the device of the reterminal"
 HOMEPAGE = "https://github.com/Seeed-Studio/Seeed_Python_ReTerminalQt5Examples"
 
 LICENSE = "GPLv3"
-LIC_FILES_CHKSUM = "file://${UNPACKDIR}/git/LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=1ebbd3e34237af26da5dc08a4e440464"
 
 SRCREV = "${AUTOREV}"
 
@@ -25,7 +25,7 @@ do_install() {
 	if [ -d ${S}/imports/armv7l ]; then
 		rm -r ${S}/imports/armv7l
 	fi
-	cp -r ${UNPACKDIR}/git/* ${D}${MY_DESTINATION}
+	cp -r ${S}/* ${D}${MY_DESTINATION}
 
 	# install qtdemo start script for systemd
 	install -d ${D}/var

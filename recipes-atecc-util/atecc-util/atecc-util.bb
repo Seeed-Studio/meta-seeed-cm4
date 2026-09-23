@@ -17,6 +17,10 @@ S = "${UNPACKDIR}/atecc-util"
 
 DEPENDS = "i2c-tools"
 
+# Treat the output like prebuilt blobs: no debug split means no -dbg
+# package with TMPDIR references (fatal buildpaths QA on wrynose).
+INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
+
 INSANE_SKIP:${PN} = "ldflags already-stripped"
 INSANE_SKIP:${PN}-dev = "dev-elf"
 

@@ -3,7 +3,7 @@ DESCRIPTION = "include all the device dtoverlay of reterminal"
 HOMEPAGE = "https://github.com/Seeed-Studio/seeed-linux-dtoverlays"
 
 LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://${UNPACKDIR}/git/COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
+LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
 inherit linux-kernel-base module-base deploy
 

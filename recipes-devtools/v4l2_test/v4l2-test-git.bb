@@ -3,7 +3,7 @@ DESCRIPTION = "This demo use the Raspberry Pi Camera"
 HOMEPAGE = "https://github.com/bigbearishappy/v4l2_test"
 
 LICENSE = "MIT"
-LIC_FILES_CHKSUM = "file://${UNPACKDIR}/git/LICENSE;md5=9066664d7f93c1baec4a6e23f5c1a64f"
+LIC_FILES_CHKSUM = "file://LICENSE;md5=9066664d7f93c1baec4a6e23f5c1a64f"
 
 SRCREV = "c16009ace9fd53bf7cf6d3ba465331466a47cf3e"
 
@@ -21,7 +21,7 @@ do_compile() {
 MY_DESTINATION1 = "/usr/bin"
 do_install() {
 	install -d ${D}${MY_DESTINATION1}
-	install -m 0755 ${UNPACKDIR}/git/v4l2test ${D}${MY_DESTINATION1}/v4l2test
+	install -m 0755 ${S}/v4l2test ${D}${MY_DESTINATION1}/v4l2test
 }
 
 FILES:${PN} += "${MY_DESTINATION1}/*"
