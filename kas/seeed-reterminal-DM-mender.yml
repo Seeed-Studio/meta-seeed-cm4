@@ -64,6 +64,8 @@ local_conf_header:
     INIT_MANAGER = "systemd"
     LICENSE_FLAGS_ACCEPTED = "synaptics-killswitch"
     INHERIT:remove = "create-spdx"
+    # machine name carries legacy uppercase "DM"; wrynose made uppercase-pn fatal
+    ERROR_QA:remove = "uppercase-pn"
 
   mender-artifact: |
     MENDER_ARTIFACT_NAME = "gha_autobuild"
