@@ -23,10 +23,6 @@ on:
         type: string
         default: ''
 
-concurrency:
-  group: yocto-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 env:
   LANG: en_US.UTF-8
 
@@ -34,6 +30,9 @@ jobs:
   build:
     name: ${{ matrix.machine }}
     runs-on: ubuntu-24.04
+    concurrency:
+      group: yocto-${{ github.workflow }}-${{ matrix.machine }}
+      cancel-in-progress: true
     # Cold full builds on the 4-vCPU public runner can take several hours;
     # 360 min is the GitHub Actions job maximum.
     timeout-minutes: 360
@@ -152,21 +151,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ inputs.tag_name }}"
-          # Create the release if it does not exist yet; tolerate a
-          # concurrent matrix job winning the race.
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
                  --target "$GITHUB_SHA" --title "$TAG" \
                  --notes "Automated image build @ ${GITHUB_SHA}" \
             || true
           DEPLOY="build/tmp/deploy/images/${{ matrix.machine }}"
-          files=$(cd "$DEPLOY" && ls -1 *.mender *.sdimg *.sdimg.gz *.wic *.wic.gz *.wic.bz2 2>/dev/null || true)
+          MACHINE="${{ matrix.machine }}"
+          BASE="core-image-base-${MACHINE}"
+          files="$(cd "$DEPLOY" && ls -1 ${BASE}.mender ${BASE}.sdimg ${BASE}.wic.bz2 2>/dev/null || true)"
           if [ -z "$files" ]; then
             echo "ERROR: no image files found in $DEPLOY"
             exit 1
           fi
-          echo "Uploading to release $TAG:"
-          echo "$files"
-          cd "$DEPLOY"
-          # shellcheck disable=SC2086
-          gh release upload "$TAG" $files --clobber -R "$GITHUB_REPOSITORY"
+          echo "Packaging: $files"
+          # -h dereferences the stable-name symlinks so the tar holds real files
+          tar -C "$DEPLOY" -czhf "${MACHINE}-image.tar.gz" $files
+          gh release upload "$TAG" "${MACHINE}-image.tar.gz" --clobber -R "$GITHUB_REPOSITORY"
