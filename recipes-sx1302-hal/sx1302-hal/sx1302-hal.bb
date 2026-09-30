@@ -6,6 +6,9 @@ LIC_FILES_CHKSUM = "file://LICENSE.TXT;md5=d2119120bd616e725f4580070bd9ee19"
 SRC_URI = "git://github.com/Lora-net/sx1302_hal.git;protocol=https;branch=master \
            file://0001-change-reset-path.patch \
            file://0002-change-i2c-device.patch \
+           file://0003-r100x-v1.1-expander-gpios.patch \
+           file://0004-r100x-v1.1-spidev.patch \
+           file://99-i2c-lora.rules \
           "
           
 SRCREV = "4b42025d1751e04632c0b04160e0d29dbbb222a5"
@@ -36,6 +39,11 @@ do_install() {
     install -m 0755 ${S}/util_boot/boot ${D}${bindir}/sx1302_boot
     install -m 0755 ${S}/util_chip_id/chip_id ${D}${bindir}/sx1302_chip_id
     install -m 0755 ${S}/util_spectral_scan/spectral_scan ${D}${bindir}/sx1302_spectral_scan
+
+    # udev rule providing /dev/i2c-lora for the V1.1 i2c bus of the
+    # concentrator module (the HAL opens /dev/i2c-lora, see 0002)
+    install -d ${D}${sysconfdir}/udev/rules.d
+    install -m 0644 ${UNPACKDIR}/99-i2c-lora.rules ${D}${sysconfdir}/udev/rules.d/
 }
 
-FILES:${PN} = "${bindir}/* ${datadir}/sx1302/*"
+FILES:${PN} = "${bindir}/* ${datadir}/sx1302/* ${sysconfdir}/udev/rules.d/99-i2c-lora.rules"
