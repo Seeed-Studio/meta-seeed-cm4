@@ -4,9 +4,14 @@ do_deploy:append() {
     grep -q "^dtoverlay=dwc2,dr_mode=host$" $CONFIG || echo "dtoverlay=dwc2,dr_mode=host" >> $CONFIG
     grep -q "^enable_uart=1$" $CONFIG || echo "enable_uart=1" >> $CONFIG
 
+    # SPI0 (GPIO8-11) is V1.0 R100x wiring; V1.1 boards use SPI1 via the
+    # reComputer-R100x overlay and wire GPIO8-11 to UART4 (RS485_3), so
+    # enabling spi0 there only produces a pinctrl conflict.
     if ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
         && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} ; then
+        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} \
+        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x', 'true', 'false', d)} \
+        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x-mender', 'true', 'false', d)} ; then
         grep -q "^dtparam=spi=on$" $CONFIG || echo "dtparam=spi=on" >> $CONFIG
     fi
     
@@ -28,7 +33,10 @@ do_deploy:append() {
         grep -q "^dtparam=i2c_arm=on$" $CONFIG || echo "dtparam=i2c_arm=on" >> $CONFIG
         grep -q "^dtoverlay=i2c1,pins_44_45$" $CONFIG || echo "dtoverlay=i2c1,pins_44_45" >> $CONFIG
         grep -q "^dtoverlay=i2c6,pins_22_23$" $CONFIG || echo "dtoverlay=i2c6,pins_22_23" >> $CONFIG
-        grep -q "^dtoverlay=audremap,pins_18_19$" $CONFIG || echo "dtoverlay=audremap,pins_18_19" >> $CONFIG
+        # V1.0 wired an analog speaker to GPIO18/19 (audio PWM); V1.1 dropped
+        # the speaker and moved GPIO18/19 to SPI1 (TPM CE0 / MISO). Keeping the
+        # audio remap would let snd_bcm2835 steal the SPI1 pins whenever the
+        # audio driver loads, silently breaking the TPM bus.
         # V1.1 boards wire the pca9535 expander to i2c5 (GPIO12/13). Without a
         # parameter the reComputer-R100x overlay enables i2c5 and places the
         # expander there. The legacy ",uart2" parameter is the V1.0 wiring: it
