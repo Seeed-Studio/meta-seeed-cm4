@@ -6,3 +6,12 @@ header:
 local_conf_header:
   ci: |
     INHERIT += "rm_work"
+
+  zlib-premirror: |
+    # zlib.net has been serving corrupt tarballs (verified 2026-10-08:
+    # two different wrong sha256s from two networks, and the gzip
+    # header declares a 744MB uncompressed size for a 2.5MB source
+    # tarball). The checksum-verified official artifact is the
+    # madler/zlib GitHub release attachment, so fetch from there
+    # before ever touching zlib.net.
+    PREMIRRORS:prepend = "https://zlib.net/ https://github.com/madler/zlib/releases/download/v1.3.2/ \n"
