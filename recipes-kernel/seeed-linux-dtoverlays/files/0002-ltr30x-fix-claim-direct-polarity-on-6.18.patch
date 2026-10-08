@@ -1,0 +1,31 @@
+Upstream-Status: Pending
+
+Fix a 6.18 compat shim that inverted iio claim-direct error checking.
+
+--- a/modules/ltr30x/ltr30x.c
++++ b/modules/ltr30x/ltr30x.c
+@@ -24,9 +24,22 @@
+ #include <linux/iio/triggered_buffer.h>
+ #include <linux/version.h>
+ 
+-/* Kernel 6.18+ renamed IIO direct mode functions */
++/* Kernel 6.18+ renamed IIO direct mode functions.
++ * The legacy claim helper returns 0 on success (mlock held) and -EBUSY
++ * on failure; the 6.18 replacement returns bool (true = success, lock
++ * held). A plain #define flips the polarity of the driver's
++ * "if (ret) return ret;" error checks: on success the driver bails out
++ * with mlock held, orphaning the mutex after the first reading task
++ * exits and deadlocking every subsequent sysfs read in D state.
++ * Wrap the new API to restore the legacy semantics (as done for the
++ * bmi088 module in this repo).
++ */
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 18, 0)
+-#define iio_device_claim_direct_mode iio_device_claim_direct
++static inline int ltr501_claim_direct_mode(struct iio_dev *indio_dev)
++{
++	return iio_device_claim_direct(indio_dev) ? 0 : -EBUSY;
++}
++#define iio_device_claim_direct_mode(indio_dev) ltr501_claim_direct_mode(indio_dev)
+ #define iio_device_release_direct_mode iio_device_release_direct
+ #endif
+ 
