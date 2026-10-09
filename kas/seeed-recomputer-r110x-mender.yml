@@ -93,6 +93,9 @@ local_conf_header:
     # Install required packages
     IMAGE_INSTALL:append = " watchdog"
     IMAGE_INSTALL:append = " atecc-util sx1302-hal"
+    # The CH348 quad serial must stay on cdc_acm (ttyACM0-3, see the
+    # ch34x-blacklist recipe for the reason)
+    IMAGE_INSTALL:append = " ch34x-blacklist"
 
     # Enable SSH server with openssh
     IMAGE_FEATURES:append = " ssh-server-openssh"
