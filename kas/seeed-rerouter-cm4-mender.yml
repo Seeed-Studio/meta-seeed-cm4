@@ -32,6 +32,8 @@ repos:
     path: layers/meta-openembedded
     layers:
       meta-oe:
+      meta-python:
+      meta-multimedia:
 
   meta-mender:
     url: https://github.com/mendersoftware/meta-mender.git
@@ -88,6 +90,7 @@ local_conf_header:
 
     # Install required packages
     IMAGE_INSTALL:append = " watchdog ffmpeg v4l-utils"
+    IMAGE_INSTALL:append = " libcamera libcamera-apps"
 
     # Enable SSH server with openssh
     IMAGE_FEATURES:append = " ssh-server-openssh"

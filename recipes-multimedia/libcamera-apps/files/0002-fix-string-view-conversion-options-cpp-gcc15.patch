@@ -1,0 +1,17 @@
+Upstream-Status: Inappropriate [gcc 15 specific workaround]
+
+GCC 15 with -std=c++17 rejects the implicit conversion from
+std::string_view to std::string in OptsInternal::Parse(). Initialize
+cam_id through an explicit std::string() constructor.
+
+--- a/core/options.cpp
++++ b/core/options.cpp
+@@ -418,7 +418,7 @@
+ 	std::vector<std::shared_ptr<libcamera::Camera>> cameras = app->GetCameras();
+ 	if (camera < cameras.size())
+ 	{
+-		const std::string cam_id = *cameras[camera]->properties().get(libcamera::properties::Model);
++		const std::string cam_id = std::string(*cameras[camera]->properties().get(libcamera::properties::Model));
+
+ 		if (cam_id.find("imx708") != std::string::npos)
+ 		{

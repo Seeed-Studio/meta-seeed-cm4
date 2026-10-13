@@ -1,0 +1,18 @@
+Upstream-Status: Inappropriate [gcc 15 specific workaround]
+
+GCC 15 with -std=c++17 rejects the implicit conversion from
+std::string_view to std::string in CameraModel(). The ternary has
+incompatible types (string_view vs string). Wrap *model in an
+explicit std::string() constructor.
+
+--- a/core/rpicam_app.cpp
++++ b/core/rpicam_app.cpp
+@@ -129,7 +129,7 @@
+ std::string RPiCamApp::CameraModel() const
+ {
+ 	auto model = camera_->properties().get(properties::Model);
+-	return model ? *model : camera_->id();
++	return model ? std::string(*model) : camera_->id();
+ }
+ 
+ void RPiCamApp::OpenCamera()
