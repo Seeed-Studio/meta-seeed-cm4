@@ -10,11 +10,32 @@ SRC_URI = "git://github.com/Lora-net/sx1302_hal.git;protocol=https;branch=master
            file://0004-r100x-v1.1-spidev.patch \
            file://99-i2c-lora.rules \
           "
+
+# reComputer R2x (R2000) routes the concentrator to /dev/spidev2.0 with the
+# reset lines on the pca9535 expander (sysfs 632/633/634) and the module I2C
+# on /dev/i2c-2; the r100x v1.1 patches above target different hardware, so
+# replace them with the R2000 set on that machine.
+SRC_URI:remove:seeed-recomputer-r2x-mender = "file://0002-change-i2c-device.patch file://0003-r100x-v1.1-expander-gpios.patch file://0004-r100x-v1.1-spidev.patch"
+SRC_URI:append:seeed-recomputer-r2x-mender = " file://0005-r2000-reset-gpios.patch file://0006-r2000-spi-i2c-paths.patch"
+SRC_URI:remove:seeed-recomputer-r2x = "file://0002-change-i2c-device.patch file://0003-r100x-v1.1-expander-gpios.patch file://0004-r100x-v1.1-spidev.patch"
+SRC_URI:append:seeed-recomputer-r2x = " file://0005-r2000-reset-gpios.patch file://0006-r2000-spi-i2c-paths.patch"
+
+# reComputer R22: WM1302 (SPI) in the mini-PCIe slot on RP1 SPI2
+# (/dev/spidev2.0); resets are pca9535 expander lines resolved by name at
+# runtime because their sysfs numbers shift between boots.
+SRC_URI:remove:seeed-recomputer-r22-mender = "file://0002-change-i2c-device.patch file://0003-r100x-v1.1-expander-gpios.patch file://0004-r100x-v1.1-spidev.patch"
+SRC_URI:append:seeed-recomputer-r22-mender = " file://0007-r22-reset-gpios.patch file://0008-r22-spi-paths.patch"
+SRC_URI:remove:seeed-recomputer-r22 = "file://0002-change-i2c-device.patch file://0003-r100x-v1.1-expander-gpios.patch file://0004-r100x-v1.1-spidev.patch"
+SRC_URI:append:seeed-recomputer-r22 = " file://0007-r22-reset-gpios.patch file://0008-r22-spi-paths.patch"
+
           
 SRCREV = "4b42025d1751e04632c0b04160e0d29dbbb222a5"
 
 
 DEPENDS = "libusb1"
+
+# reset_lgw.sh is #!/bin/bash and the target is busybox-sh by default
+RDEPENDS:${PN} += "bash"
 
 inherit pkgconfig
 
@@ -31,6 +52,12 @@ do_install() {
     install -m 0755 ${S}/packet_forwarder/lora_pkt_fwd ${D}${bindir}/
     install -m 0755 ${S}/tools/reset_lgw.sh ${D}${bindir}/sx1302_reset
     install -m 0644 ${S}/packet_forwarder/global_conf.json.* ${D}${datadir}/sx1302/
+
+    # lora_pkt_fwd invokes the reset script as ./reset_lgw.sh relative to its
+    # CWD (system("./reset_lgw.sh start"), src/lora_pkt_fwd.c), so the script
+    # must live next to the configs: run the forwarder from /usr/share/sx1302
+    # (cd /usr/share/sx1302 && lora_pkt_fwd -c global_conf.json.sx1250.US915).
+    install -m 0755 ${S}/tools/reset_lgw.sh ${D}${datadir}/sx1302/reset_lgw.sh
     
     if [ -d ${S}/mcu_bin ]; then
         install -m 0644 ${S}/mcu_bin/*.bin ${D}${datadir}/sx1302/mcu_bin/ || true

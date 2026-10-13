@@ -1,0 +1,73 @@
+Upstream-Status: Inappropriate [seeed R2000 board specific]
+
+reComputer R2x (R2000) wires the LoRa concentrator to SPI2 (/dev/spidev2.0,
+the upstream default is spidev0.0 which does not exist on this machine) and
+the concentrator module I2C bus is /dev/i2c-2. Adjust the compiled-in paths
+of chip_id/spectral_scan, the packet_forwarder global_conf files and the
+loragw_i2c.h device accordingly.
+
+diff --git a/libloragw/inc/loragw_i2c.h b/libloragw/inc/loragw_i2c.h
+index a35b772..240d3f1 100644
+--- a/libloragw/inc/loragw_i2c.h
++++ b/libloragw/inc/loragw_i2c.h
+@@ -29,7 +29,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
+ #define LGW_I2C_SUCCESS     0
+ #define LGW_I2C_ERROR       -1
+ 
+-#define I2C_DEVICE          "/dev/i2c-1"
++#define I2C_DEVICE          "/dev/i2c-2"
+ 
+ /* -------------------------------------------------------------------------- */
+ /* --- PUBLIC FUNCTIONS PROTOTYPES ------------------------------------------ */
+diff --git a/packet_forwarder/global_conf.json.sx1250.EU868 b/packet_forwarder/global_conf.json.sx1250.EU868
+index 063c931..874b6e5 100644
+--- a/packet_forwarder/global_conf.json.sx1250.EU868
++++ b/packet_forwarder/global_conf.json.sx1250.EU868
+@@ -1,7 +1,7 @@
+ {
+     "SX130x_conf": {
+         "com_type": "SPI",
+-        "com_path": "/dev/spidev0.0",
++        "com_path": "/dev/spidev2.0",
+         "lorawan_public": true,
+         "clksrc": 0,
+         "antenna_gain": 0, /* antenna gain, in dBi */
+diff --git a/packet_forwarder/global_conf.json.sx1250.US915 b/packet_forwarder/global_conf.json.sx1250.US915
+index 04434bf..00a50fc 100644
+--- a/packet_forwarder/global_conf.json.sx1250.US915
++++ b/packet_forwarder/global_conf.json.sx1250.US915
+@@ -1,7 +1,7 @@
+ {
+     "SX130x_conf": {
+         "com_type": "SPI",
+-        "com_path": "/dev/spidev0.0",
++        "com_path": "/dev/spidev2.0",
+         "lorawan_public": true,
+         "clksrc": 0,
+         "antenna_gain": 0, /* antenna gain, in dBi */
+diff --git a/util_chip_id/src/chip_id.c b/util_chip_id/src/chip_id.c
+index ae670b4..46f900e 100644
+--- a/util_chip_id/src/chip_id.c
++++ b/util_chip_id/src/chip_id.c
+@@ -47,7 +47,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
+ /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
+ 
+ #define COM_TYPE_DEFAULT    LGW_COM_SPI
+-#define COM_PATH_DEFAULT    "/dev/spidev0.0"
++#define COM_PATH_DEFAULT    "/dev/spidev2.0"
+ 
+ #define DEFAULT_CLK_SRC     0
+ #define DEFAULT_FREQ_HZ     868500000U
+diff --git a/util_spectral_scan/src/spectral_scan.c b/util_spectral_scan/src/spectral_scan.c
+index b9f336e..56cc8ec 100644
+--- a/util_spectral_scan/src/spectral_scan.c
++++ b/util_spectral_scan/src/spectral_scan.c
+@@ -44,7 +44,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
+ /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
+ 
+ #define COM_TYPE_DEFAULT    LGW_COM_SPI
+-#define COM_PATH_DEFAULT    "/dev/spidev0.0"
++#define COM_PATH_DEFAULT    "/dev/spidev2.0"
+ #define SX1261_PATH_DEFAULT "/dev/spidev0.1"
+ 
+ #define DEFAULT_CLK_SRC     0
