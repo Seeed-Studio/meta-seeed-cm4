@@ -86,6 +86,12 @@ local_conf_header:
     # by the out-of-tree ch34x driver (ttyCH343USB0-4, see the
     # cdc-acm-blacklist recipe for the reason)
     IMAGE_INSTALL:append = " cdc-acm-blacklist"
+    # ATECC608A secure element on RP1 i2c6 (/dev/i2c-10, 0x60 8-bit) - wirenboard
+    # userspace util (kernel does not bind the sferalabs,atecc compatible)
+    IMAGE_INSTALL:append = " atecc-util"
+    # SPI LoRa concentrator (SX1302 module on spidev2.0, R2000-specific
+    # patches selected in the recipe)
+    IMAGE_INSTALL:append = " sx1302-hal"
 
     # Install required packages
     IMAGE_INSTALL:append = " e2fsprogs-resize2fs parted util-linux sudo"
