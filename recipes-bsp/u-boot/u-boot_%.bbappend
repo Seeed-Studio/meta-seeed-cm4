@@ -2,10 +2,9 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/${PN}:"
 
 SRC_URI:append:rpi = " file://rpi-enable-bootscr.cfg"
 
-# Backport of upstream 8de24e226d7: sdhci_brcmstb_init_2712() must force
-# card-present for non-removable/polled hosts. On BCM2712/CM5 (reComputer
-# R22) U-Boot 2026.01 otherwise writes SD_PIN_SEL = SD on the eMMC
-# controller; the value survives SDHCI resets and wedges Linux's first
-# eMMC power-up (races the POWER_ON latch), and the wrong CD routing can
-# break U-Boot's own eMMC init depending on the carrier/chip.
-SRC_URI:append:rpi = " file://0005-mmc-bcmstb-fix-non-removable-check-in-bcm2712-init.patch"
+# The 8de24e226d7 backport (bcmstb non-removable fix needed for R22 eMMC)
+# is no longer carried here: meta-raspberrypi wrynose ships the same
+# upstream commit as recipes-bsp/u-boot/files/8de24e226d7.patch via
+# u-boot_2026.01.bbappend, and applying it twice fails do_patch with
+# "can be reverse-applied".
+
