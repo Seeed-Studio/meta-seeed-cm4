@@ -82,6 +82,11 @@ local_conf_header:
     PREFERRED_VERSION_linux-raspberrypi ?= "6.18%"
     KERNEL_MODULE_AUTOLOAD:rpi += "i2c-dev"
 
+    # The WCH CH344L/CH343P USB serial chips (RS232 + 3x RS485) must be driven
+    # by the out-of-tree ch34x driver (ttyCH343USB0-4, see the
+    # cdc-acm-blacklist recipe for the reason)
+    IMAGE_INSTALL:append = " cdc-acm-blacklist"
+
     # Install required packages
     IMAGE_INSTALL:append = " e2fsprogs-resize2fs parted util-linux sudo"
     IMAGE_INSTALL:append = " net-tools iproute2"
