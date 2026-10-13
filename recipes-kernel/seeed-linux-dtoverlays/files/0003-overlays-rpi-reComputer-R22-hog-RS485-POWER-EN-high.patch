@@ -29,3 +29,4 @@ index 8b04422..be9f55a 100644
 +					output-high;
  					line-name = "RS485_POWER_EN";
  				};
+ 				
