@@ -14,7 +14,6 @@ SRCREV = "${AUTOREV}"
 SRC_URI = "git://github.com/Seeed-Studio/seeed-linux-dtoverlays.git;protocol=https;branch=master \
     file://0001-compatible-for-yocto.patch \
     file://0002-ltr30x-fix-claim-direct-polarity-on-6.18.patch \
-    file://0003-overlays-rpi-reComputer-R22-hog-RS485-POWER-EN-high.patch \
     "
 
 DEPENDS += " dtc-native"
