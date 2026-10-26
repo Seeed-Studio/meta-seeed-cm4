@@ -1,6 +1,12 @@
 name: seeed-yocto-boards-build
 
 on:
+  # Monthly full build of all boards, day 26 (anchor date: 2026-10-26).
+  # NOTE: schedule triggers only fire from the repo's default branch -
+  # this takes effect once fix/ci is merged into main. 19:43 UTC = 03:43
+  # Beijing on the 27th, off the hour to dodge the cron rush.
+  schedule:
+    - cron: '43 19 26 * *'
   workflow_dispatch:
     inputs:
       machine:
@@ -152,11 +158,18 @@ jobs:
           key: yocto-wrynose-${{ matrix.machine }}-sstate-${{ github.sha }}
 
       - name: Upload release assets
-        if: ${{ inputs.tag_name != '' }}
+        # Manual dispatch: only when a tag was given. Monthly schedule:
+        # always, under a month tag (monthly-YYYY-MM) so each board's
+        # assets accumulate into the same release.
+        if: ${{ inputs.tag_name != '' || github.event_name == 'schedule' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="${{ inputs.tag_name }}"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            TAG="monthly-$(date -u +%Y-%m)"
+          else
+            TAG="${{ inputs.tag_name }}"
+          fi
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
             || gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
                  --target "$GITHUB_SHA" --title "$TAG" \
