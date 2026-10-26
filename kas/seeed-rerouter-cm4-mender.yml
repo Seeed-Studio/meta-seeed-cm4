@@ -89,8 +89,7 @@ local_conf_header:
     IMAGE_INSTALL:append = " seeed-linux-dtoverlays"
 
     # Install required packages
-    IMAGE_INSTALL:append = " watchdog ffmpeg v4l-utils"
-    IMAGE_INSTALL:append = " libcamera libcamera-apps"
+    IMAGE_INSTALL:append = " watchdog"
 
     # Enable SSH server with openssh
     IMAGE_FEATURES:append = " ssh-server-openssh"
