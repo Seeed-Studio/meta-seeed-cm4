@@ -22,6 +22,11 @@ on:
         required: false
         type: string
         default: ''
+      cold_cache:
+        description: Skip sstate cache restore for a true cold build (timing validation)
+        required: false
+        type: boolean
+        default: false
 
 env:
   LANG: en_US.UTF-8
@@ -86,6 +91,7 @@ jobs:
           sudo rm -f /bin/sh && sudo ln -s bash /bin/sh
 
       - name: Restore Yocto sstate cache
+        if: ${{ inputs.cold_cache != true }}
         uses: actions/cache/restore@v4
         with:
           path: build/sstate-cache
