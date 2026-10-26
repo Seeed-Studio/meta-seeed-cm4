@@ -80,14 +80,23 @@ jobs:
 
       - name: Install Yocto host dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          # A hung Ubuntu mirror once stalled apt-get for the whole
+          # 360-min job cap (2026-10-26, r22 attempt 2: checkout + disk
+          # cleanup fine, then zero output for 6h in this step). Retry
+          # with hard timeouts so infra flakiness fails fast instead.
+          for i in 1 2 3; do
+            timeout 300 sudo apt-get update && break
+            echo "WARNING: apt-get update attempt $i timed out, retrying"
+            [ "$i" = 3 ] && exit 1
+            sleep 15
+          done
+          timeout 900 sudo apt-get install -y \
             bc build-essential chrpath cpio diffstat file gawk git \
             iputils-ping libacl1 libegl1 lz4 libsdl2-dev \
             mesa-common-dev pylint python3 python3-git python3-jinja2 \
             python3-pexpect python3-subunit socat texinfo unzip \
             wget xterm xz-utils zstd locales
-          sudo pip3 install kas
+          timeout 300 sudo pip3 install kas
           kas --version
 
       - name: Enable BitBake user namespaces
