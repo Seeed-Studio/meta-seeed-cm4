@@ -1,0 +1,5 @@
+# reComputer R100x V1.1: the SX1302 concentrator module's I2C devices
+# (STTS751 temperature sensor at 0x39) hang off i2c bus 6. The sx1302-hal
+# library opens /dev/i2c-lora (patched I2C_DEVICE), so provide that name.
+# V1.0 boards: use i2c-3 instead.
+KERNEL=="i2c-6", SYMLINK+="i2c-lora"

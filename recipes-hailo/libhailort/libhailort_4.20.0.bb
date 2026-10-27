@@ -8,7 +8,6 @@ LIC_FILES_CHKSUM = "file://hailort/LICENSE;md5=48b1c947c88868c23e4fb874890be6fc 
 SRC_URI = "git://git@github.com/hailo-ai/hailort.git;protocol=https;branch=master"
 SRCREV = "542ba8f3cd95ed85175083ee4add00167c50f668"
 
-S = "${WORKDIR}/git"
 
 inherit hailort-base
 OECMAKE_TARGET_COMPILE = "libhailort"
@@ -31,3 +30,7 @@ do_install:append() {
 
 FILES:${PN} += "${libdir}/libhailort.so.${PV}"
 FILES:${PN}-dev += "${includedir}/hailort ${includedir}/hailort/* ${libdir}/libhailort.so"
+
+# cmake_install.cmake in -dev embeds absolute build paths; fatal
+# buildpaths QA on wrynose (run 35894034902).
+INSANE_SKIP:${PN}-dev += "buildpaths"

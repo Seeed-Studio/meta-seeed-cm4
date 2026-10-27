@@ -5,61 +5,55 @@ distro: poky
 
 repos:
   openembedded-core:
-    url: git://git.openembedded.org/openembedded-core.git
-    branch: scarthgap
+    url: https://git.openembedded.org/openembedded-core.git
+    branch: wrynose
     path: layers/openembedded-core
     layers:
       meta:
 
   bitbake:
-    url: git://git.openembedded.org/bitbake.git
-    commit: 1c9ec1ffde75809de34c10d3ec2b40d84d258cb4
+    url: https://git.openembedded.org/bitbake.git
+    commit: 0ad6c1c34a5e07a5f8dd66ab248c1e7b37b69fa9
     path: layers/bitbake
     layers:
       bitbake: disabled
 
   meta-yocto:
-    url: git://git.yoctoproject.org/git/meta-yocto.git
-    branch: scarthgap
+    url: https://git.yoctoproject.org/git/meta-yocto.git
+    branch: wrynose
     path: layers/meta-yocto
     layers:
       meta-poky:
       meta-yocto-bsp:
 
   meta-openembedded:
-    url: git://git.openembedded.org/meta-openembedded
-    branch: scarthgap
+    url: https://git.openembedded.org/meta-openembedded
+    branch: wrynose
     path: layers/meta-openembedded
     layers:
       meta-oe:
 
   meta-mender:
     url: https://github.com/mendersoftware/meta-mender.git
-    branch: scarthgap
+    branch: wrynose
     path: layers/meta-mender
     layers:
       meta-mender-core:
   
   meta-raspberrypi:
     url: https://github.com/agherzan/meta-raspberrypi.git
-    branch: scarthgap
+    branch: wrynose
     path: layers/meta-raspberrypi
-
-  meta-lts-mixins:
-    url: https://git.yoctoproject.org/meta-lts-mixins
-    branch: scarthgap/u-boot
-    path: layers/meta-lts-mixins
 
   meta-mender-community:
     url: https://github.com/mendersoftware/meta-mender-community.git
-    branch: scarthgap
+    branch: wrynose
     path: layers/meta-mender-community
     layers:
       meta-mender-raspberrypi:
 
   meta-seeed-cm4:
     path: layers/meta-seeed-cm4
-    branch: main
 
 machine: seeed-recomputer-r22-mender
 
@@ -85,7 +79,7 @@ local_conf_header:
 
   seeed-recomputer-r22: |
     # Seeed reComputer R22 specific configurations (Raspberry Pi 5 based)
-    PREFERRED_VERSION_linux-raspberrypi ?= "6.12%"
+    PREFERRED_VERSION_linux-raspberrypi ?= "6.18%"
     KERNEL_MODULE_AUTOLOAD:rpi += "i2c-dev"
 
     # Install required packages
@@ -94,25 +88,12 @@ local_conf_header:
     IMAGE_INSTALL:append = " spidev-test can-utils watchdog minicom"
     IMAGE_INSTALL:append = " hailo-firmware libhailort-dev hailortcli"
     IMAGE_INSTALL:append = " \
-        python3-pip \
         python3-psutil \
         python3-logging \
-        python3-pycairo \
-        python3-pygobject \
-        python3-seeed-python-reterminal \
-        "
-
-    IMAGE_INSTALL:append = " \
-        protobuf protobuf-compiler \
-        opencv-dev opencv-staticdev \
-        git cmake \
-        tmux vim \
-        dpkg pkgconfig \
-        wget curl alsa-utils alsa-lib\
         "
 
     # Enable SSH server with openssh
-    IMAGE_FEATURES:append = " ssh-server-openssh splash tools-sdk"
+    IMAGE_FEATURES:append = " ssh-server-openssh splash"
 
 target:
   - core-image-base

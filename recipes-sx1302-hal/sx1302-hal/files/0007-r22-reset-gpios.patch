@@ -1,0 +1,161 @@
+From: Bohrium332 <ruiqian.tang@seeed.cc>
+Subject: [PATCH] tools: R22 reset script with runtime-resolved gpios, correct
+ reset polarity and SX1262 CS
+
+The reComputer R22 routes the WM1302 reset/CS lines to pca9535 expander
+lines whose sysfs numbers shift between boots (the gpiochip base depends
+on i2c probe order, and one expander may fail to probe entirely). Rewrite
+reset_lgw.sh to resolve the lines by their DT gpio-line-names
+(LoRaWAN_SX1302_RST / LoRaWAN_SX1262_RST / LoRaWAN_SX1262_CS) at runtime.
+
+Hardware facts baked into the sequence (verified on R22 + WM1302-SPI):
+- SX1302_RST is ACTIVE HIGH on this carrier (the production DT hog leaves
+  it output-low = running). The script must end with the line LOW; leaving
+  it high holds the SX1302 in reset and the chip reads as version 0x00.
+- The SX1262 shares the SPI bus with the SX1302; its CS must be driven
+  HIGH to keep it from driving MISO while the SX1302 is addressed.
+- No dedicated SX1302 power-enable line (the module rail is always on)
+  and no AD5338R (CN490 reference design only), so those are dropped.
+
+Upstream-Status: Inappropriate [Seeed R22 board specific]
+---
+diff --git a/tools/reset_lgw.sh b/tools/reset_lgw.sh
+index b58f0e9..26b3cac 100755
+--- a/tools/reset_lgw.sh
++++ b/tools/reset_lgw.sh
+@@ -1,77 +1,73 @@
+-#!/bin/sh
+-
+-# This script is intended to be used on SX1302 CoreCell platform, it performs
+-# the following actions:
+-#       - export/unpexort GPIO23 and GPIO18 used to reset the SX1302 chip and to enable the LDOs
+-#       - export/unexport GPIO22 used to reset the optional SX1261 radio used for LBT/Spectral Scan
++#!/bin/bash
++# reComputer R22: SX1302/SX1262 resets and the SX1262 chip-select are pca9535
++# expander lines whose sysfs numbers shift between boots (the gpiochip base
++# depends on i2c probe order, and one expander may fail to probe entirely),
++# so resolve them by their DT gpio-line-names at runtime.
+ #
+-# Usage examples:
+-#       ./reset_lgw.sh stop
+-#       ./reset_lgw.sh start
++# Hardware facts, verified on the R22 carrier with a WM1302-SPI module:
++#   - SX1302_RST is ACTIVE HIGH here (carrier inverts the SX1302 NRESET);
++#     the production DT hog leaves it output-low = chip running. The script
++#     must end with the line LOW.
++#   - The SX1262 shares the SPI bus with the SX1302; its CS must be driven
++#     HIGH to keep it off the bus while talking to the SX1302.
++#   - The R22 has no dedicated SX1302 power-enable line (the module rail is
++#     always on) and no AD5338R (CN490 reference design only).
+ 
+-# GPIO mapping has to be adapted with HW
+-#
++line2sysfs() {
++    line=$(awk -v n="$1" 'index($0, "(" n){match($0, /gpio-[0-9]+/); print substr($0, RSTART+5, RLENGTH-5); exit}' /sys/kernel/debug/gpio)
++    [ -z "$line" ] && return 1
++    label=$(awk -v n="$1" '/^gpiochip/{chip=$0} index($0, "(" n){print chip; exit}' /sys/kernel/debug/gpio | grep -oE '[A-Za-z0-9]+-[0-9a-f]{4}' | head -1)
++    [ -z "$label" ] && return 1
++    base=""
++    for c in /sys/class/gpio/gpiochip*; do
++        [ "$(cat $c/label 2>/dev/null)" = "$label" ] && base=$(cat $c/base 2>/dev/null) && break
++    done
++    [ -z "$base" ] && return 1
++    echo $((base + line))
++}
+ 
+-SX1302_RESET_PIN=23     # SX1302 reset
+-SX1302_POWER_EN_PIN=18  # SX1302 power enable
+-SX1261_RESET_PIN=22     # SX1261 reset (LBT / Spectral Scan)
+-AD5338R_RESET_PIN=13    # AD5338R reset (full-duplex CN490 reference design)
++SX1302_RESET_PIN=$(line2sysfs LoRaWAN_SX1302_RST) || { echo "ERROR: LoRaWAN_SX1302_RST line not found"; exit 1; }
++SX1261_RESET_PIN=$(line2sysfs LoRaWAN_SX1262_RST) || true
++SX1262_CS_PIN=$(line2sysfs LoRaWAN_SX1262_CS) || true
+ 
+ WAIT_GPIO() {
+     sleep 0.1
+ }
+ 
+ init() {
+-    # setup GPIOs
+-    echo "$SX1302_RESET_PIN" > /sys/class/gpio/export; WAIT_GPIO
+-    echo "$SX1261_RESET_PIN" > /sys/class/gpio/export; WAIT_GPIO
+-    echo "$SX1302_POWER_EN_PIN" > /sys/class/gpio/export; WAIT_GPIO
+-    echo "$AD5338R_RESET_PIN" > /sys/class/gpio/export; WAIT_GPIO
++    echo "$SX1302_RESET_PIN" > /sys/class/gpio/export 2>/dev/null; WAIT_GPIO
++    [ -n "$SX1261_RESET_PIN" ] && { echo "$SX1261_RESET_PIN" > /sys/class/gpio/export 2>/dev/null; WAIT_GPIO; }
++    [ -n "$SX1262_CS_PIN" ] && { echo "$SX1262_CS_PIN" > /sys/class/gpio/export 2>/dev/null; WAIT_GPIO; }
+ 
+-    # set GPIOs as output
+-    echo "out" > /sys/class/gpio/gpio$SX1302_RESET_PIN/direction; WAIT_GPIO
+-    echo "out" > /sys/class/gpio/gpio$SX1261_RESET_PIN/direction; WAIT_GPIO
+-    echo "out" > /sys/class/gpio/gpio$SX1302_POWER_EN_PIN/direction; WAIT_GPIO
+-    echo "out" > /sys/class/gpio/gpio$AD5338R_RESET_PIN/direction; WAIT_GPIO
++    echo out > /sys/class/gpio/gpio$SX1302_RESET_PIN/direction; WAIT_GPIO
++    [ -n "$SX1261_RESET_PIN" ] && { echo out > /sys/class/gpio/gpio$SX1261_RESET_PIN/direction; WAIT_GPIO; }
++    [ -n "$SX1262_CS_PIN" ] && { echo out > /sys/class/gpio/gpio$SX1262_CS_PIN/direction; WAIT_GPIO; }
+ }
+ 
+ reset() {
+-    echo "CoreCell reset through GPIO$SX1302_RESET_PIN..."
+-    echo "SX1261 reset through GPIO$SX1302_RESET_PIN..."
+-    echo "CoreCell power enable through GPIO$SX1302_POWER_EN_PIN..."
+-    echo "CoreCell ADC reset through GPIO$AD5338R_RESET_PIN..."
+-
+-    # write output for SX1302 CoreCell power_enable and reset
+-    echo "1" > /sys/class/gpio/gpio$SX1302_POWER_EN_PIN/value; WAIT_GPIO
++    echo "R22: SX1302 reset via gpio$SX1302_RESET_PIN, SX1262 reset via gpio$SX1261_RESET_PIN, SX1262 CS via gpio$SX1262_CS_PIN"
+ 
+-    echo "1" > /sys/class/gpio/gpio$SX1302_RESET_PIN/value; WAIT_GPIO
+-    echo "0" > /sys/class/gpio/gpio$SX1302_RESET_PIN/value; WAIT_GPIO
++    # keep SX1262 off the shared SPI bus: CS high (inactive)
++    [ -n "$SX1262_CS_PIN" ] && { echo 1 > /sys/class/gpio/gpio$SX1262_CS_PIN/value; WAIT_GPIO; }
+ 
+-    echo "0" > /sys/class/gpio/gpio$SX1261_RESET_PIN/value; WAIT_GPIO
+-    echo "1" > /sys/class/gpio/gpio$SX1261_RESET_PIN/value; WAIT_GPIO
++    # SX1302 reset is active high on this carrier: assert, then leave LOW
++    # (running). Verified: RST high at read time -> chip version 0x00.
++    echo 1 > /sys/class/gpio/gpio$SX1302_RESET_PIN/value; WAIT_GPIO
++    echo 0 > /sys/class/gpio/gpio$SX1302_RESET_PIN/value; WAIT_GPIO
+ 
+-    echo "0" > /sys/class/gpio/gpio$AD5338R_RESET_PIN/value; WAIT_GPIO
+-    echo "1" > /sys/class/gpio/gpio$AD5338R_RESET_PIN/value; WAIT_GPIO
++    # SX1262 NRESET is active low: assert, then release (high)
++    [ -n "$SX1261_RESET_PIN" ] && {
++        echo 0 > /sys/class/gpio/gpio$SX1261_RESET_PIN/value; WAIT_GPIO
++        echo 1 > /sys/class/gpio/gpio$SX1261_RESET_PIN/value; WAIT_GPIO
++    }
+ }
+ 
+ term() {
+-    # cleanup all GPIOs
+-    if [ -d /sys/class/gpio/gpio$SX1302_RESET_PIN ]
+-    then
+-        echo "$SX1302_RESET_PIN" > /sys/class/gpio/unexport; WAIT_GPIO
+-    fi
+-    if [ -d /sys/class/gpio/gpio$SX1261_RESET_PIN ]
+-    then
+-        echo "$SX1261_RESET_PIN" > /sys/class/gpio/unexport; WAIT_GPIO
+-    fi
+-    if [ -d /sys/class/gpio/gpio$SX1302_POWER_EN_PIN ]
+-    then
+-        echo "$SX1302_POWER_EN_PIN" > /sys/class/gpio/unexport; WAIT_GPIO
+-    fi
+-    if [ -d /sys/class/gpio/gpio$AD5338R_RESET_PIN ]
+-    then
+-        echo "$AD5338R_RESET_PIN" > /sys/class/gpio/unexport; WAIT_GPIO
+-    fi
++    for p in "$SX1302_RESET_PIN" "$SX1261_RESET_PIN" "$SX1262_CS_PIN"; do
++        [ -n "$p" ] && [ -d /sys/class/gpio/gpio$p ] && {
++            echo "$p" > /sys/class/gpio/unexport; WAIT_GPIO
++        }
++    done
+ }
+ 
+ case "$1" in
+@@ -90,4 +86,4 @@ case "$1" in
+     ;;
+ esac
+ 
+-exit 0
+\ No newline at end of file
++exit 0

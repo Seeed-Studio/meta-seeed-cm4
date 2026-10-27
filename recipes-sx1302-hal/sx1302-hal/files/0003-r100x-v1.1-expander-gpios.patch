@@ -1,0 +1,65 @@
+Upstream-Status: Inappropriate [seeed r100x V1.1 board specific]
+
+reComputer R100x V1.1 routes the WM1302/WM1303 SPI concentrator module reset and
+power lines through the pca9535 GPIO expander (gpiochip578):
+P00=578 power enable, P01=579 SX1261 reset, P02=580 SX1302 reset.
+The AD5338R DAC only exists on the full-duplex CN490 reference design, not here.
+V1.0 boards use the same expander GPIO numbers.
+
+--- a/tools/reset_lgw.sh
++++ b/tools/reset_lgw.sh
+@@ -12,10 +12,9 @@
+ # GPIO mapping has to be adapted with HW
+ #
+ 
+-SX1302_RESET_PIN=23     # SX1302 reset
+-SX1302_POWER_EN_PIN=18  # SX1302 power enable
+-SX1261_RESET_PIN=22     # SX1261 reset (LBT / Spectral Scan)
+-AD5338R_RESET_PIN=13    # AD5338R reset (full-duplex CN490 reference design)
++SX1302_RESET_PIN=580     # SX1302 reset
++SX1302_POWER_EN_PIN=578  # SX1302 power enable
++SX1261_RESET_PIN=579     # SX1261 reset (LBT / Spectral Scan)
+ 
+ WAIT_GPIO() {
+     sleep 0.1
+@@ -26,20 +25,17 @@
+     echo "$SX1302_RESET_PIN" > /sys/class/gpio/export; WAIT_GPIO
+     echo "$SX1261_RESET_PIN" > /sys/class/gpio/export; WAIT_GPIO
+     echo "$SX1302_POWER_EN_PIN" > /sys/class/gpio/export; WAIT_GPIO
+-    echo "$AD5338R_RESET_PIN" > /sys/class/gpio/export; WAIT_GPIO
+ 
+     # set GPIOs as output
+     echo "out" > /sys/class/gpio/gpio$SX1302_RESET_PIN/direction; WAIT_GPIO
+     echo "out" > /sys/class/gpio/gpio$SX1261_RESET_PIN/direction; WAIT_GPIO
+     echo "out" > /sys/class/gpio/gpio$SX1302_POWER_EN_PIN/direction; WAIT_GPIO
+-    echo "out" > /sys/class/gpio/gpio$AD5338R_RESET_PIN/direction; WAIT_GPIO
+ }
+ 
+ reset() {
+     echo "CoreCell reset through GPIO$SX1302_RESET_PIN..."
+     echo "SX1261 reset through GPIO$SX1302_RESET_PIN..."
+     echo "CoreCell power enable through GPIO$SX1302_POWER_EN_PIN..."
+-    echo "CoreCell ADC reset through GPIO$AD5338R_RESET_PIN..."
+ 
+     # write output for SX1302 CoreCell power_enable and reset
+     echo "1" > /sys/class/gpio/gpio$SX1302_POWER_EN_PIN/value; WAIT_GPIO
+@@ -50,8 +46,6 @@
+     echo "0" > /sys/class/gpio/gpio$SX1261_RESET_PIN/value; WAIT_GPIO
+     echo "1" > /sys/class/gpio/gpio$SX1261_RESET_PIN/value; WAIT_GPIO
+ 
+-    echo "0" > /sys/class/gpio/gpio$AD5338R_RESET_PIN/value; WAIT_GPIO
+-    echo "1" > /sys/class/gpio/gpio$AD5338R_RESET_PIN/value; WAIT_GPIO
+ }
+ 
+ term() {
+@@ -68,10 +62,6 @@
+     then
+         echo "$SX1302_POWER_EN_PIN" > /sys/class/gpio/unexport; WAIT_GPIO
+     fi
+-    if [ -d /sys/class/gpio/gpio$AD5338R_RESET_PIN ]
+-    then
+-        echo "$AD5338R_RESET_PIN" > /sys/class/gpio/unexport; WAIT_GPIO
+-    fi
+ }
+ 
+ case "$1" in

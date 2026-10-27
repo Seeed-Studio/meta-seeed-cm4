@@ -1,0 +1,83 @@
+From: Bohrium332 <ruiqian.tang@seeed.cc>
+Subject: [PATCH] R22 concentrator on /dev/spidev2.0 with module I2C on
+ /dev/i2c-2, EU868 and US915 configs
+
+The WM1302 (SPI) sits in the mini-PCIe slot wired to RP1 SPI2, so point
+com_path at /dev/spidev2.0 for both regional configs the Seeed boards
+enable (EU868 and US915, matching the r100x/r2000 patch set) and fix the
+compiled-in COM_PATH_DEFAULT of the chip_id/spectral_scan utilities so
+the packaged sx1302_* tools work out of the box.
+
+The temperature sensor the HAL requires (STTS751 at 0x39, mounted on the
+WM1302 module) is reachable on /dev/i2c-2 - NOT the upstream default
+/dev/i2c-1, which on the R22 only carries the pca9535 expanders. With the
+default left in place the HAL fails with "no temperature sensor found"
+and the concentrator never starts.
+
+Upstream-Status: Inappropriate [Seeed R22 board specific]
+---
+diff --git a/libloragw/inc/loragw_i2c.h b/libloragw/inc/loragw_i2c.h
+index a35b772..240d3f1 100644
+--- a/libloragw/inc/loragw_i2c.h
++++ b/libloragw/inc/loragw_i2c.h
+@@ -29,7 +29,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
+ #define LGW_I2C_SUCCESS     0
+ #define LGW_I2C_ERROR       -1
+ 
+-#define I2C_DEVICE          "/dev/i2c-1"
++#define I2C_DEVICE          "/dev/i2c-2"
+ 
+ /* -------------------------------------------------------------------------- */
+ /* --- PUBLIC FUNCTIONS PROTOTYPES ------------------------------------------ */
+diff --git a/packet_forwarder/global_conf.json.sx1250.EU868 b/packet_forwarder/global_conf.json.sx1250.EU868
+index 063c931..874b6e5 100644
+--- a/packet_forwarder/global_conf.json.sx1250.EU868
++++ b/packet_forwarder/global_conf.json.sx1250.EU868
+@@ -1,7 +1,7 @@
+ {
+     "SX130x_conf": {
+         "com_type": "SPI",
+-        "com_path": "/dev/spidev0.0",
++        "com_path": "/dev/spidev2.0",
+         "lorawan_public": true,
+         "clksrc": 0,
+         "antenna_gain": 0, /* antenna gain, in dBi */
+diff --git a/packet_forwarder/global_conf.json.sx1250.US915 b/packet_forwarder/global_conf.json.sx1250.US915
+index 04434bf..00a50fc 100644
+--- a/packet_forwarder/global_conf.json.sx1250.US915
++++ b/packet_forwarder/global_conf.json.sx1250.US915
+@@ -1,7 +1,7 @@
+ {
+     "SX130x_conf": {
+         "com_type": "SPI",
+-        "com_path": "/dev/spidev0.0",
++        "com_path": "/dev/spidev2.0",
+         "lorawan_public": true,
+         "clksrc": 0,
+         "antenna_gain": 0, /* antenna gain, in dBi */
+diff --git a/util_chip_id/src/chip_id.c b/util_chip_id/src/chip_id.c
+index ae670b4..46f900e 100644
+--- a/util_chip_id/src/chip_id.c
++++ b/util_chip_id/src/chip_id.c
+@@ -47,7 +47,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
+ /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
+ 
+ #define COM_TYPE_DEFAULT    LGW_COM_SPI
+-#define COM_PATH_DEFAULT    "/dev/spidev0.0"
++#define COM_PATH_DEFAULT    "/dev/spidev2.0"
+ 
+ #define DEFAULT_CLK_SRC     0
+ #define DEFAULT_FREQ_HZ     868500000U
+diff --git a/util_spectral_scan/src/spectral_scan.c b/util_spectral_scan/src/spectral_scan.c
+index b9f336e..56cc8ec 100644
+--- a/util_spectral_scan/src/spectral_scan.c
++++ b/util_spectral_scan/src/spectral_scan.c
+@@ -44,7 +44,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
+ /* --- PRIVATE CONSTANTS ---------------------------------------------------- */
+ 
+ #define COM_TYPE_DEFAULT    LGW_COM_SPI
+-#define COM_PATH_DEFAULT    "/dev/spidev0.0"
++#define COM_PATH_DEFAULT    "/dev/spidev2.0"
+ #define SX1261_PATH_DEFAULT "/dev/spidev0.1"
+ 
+ #define DEFAULT_CLK_SRC     0

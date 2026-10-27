@@ -3,7 +3,7 @@ DESCRIPTION = "include all the device dtoverlay of reterminal"
 HOMEPAGE = "https://github.com/Seeed-Studio/seeed-linux-dtoverlays"
 
 LICENSE = "GPL-2.0-only"
-LIC_FILES_CHKSUM = "file://${WORKDIR}/git/COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
+LIC_FILES_CHKSUM = "file://COPYING;md5=bbea815ee2795b2f4230826c0c6b8814"
 
 inherit linux-kernel-base module-base deploy
 
@@ -13,11 +13,11 @@ SRCREV = "${AUTOREV}"
 
 SRC_URI = "git://github.com/Seeed-Studio/seeed-linux-dtoverlays.git;protocol=https;branch=master \
     file://0001-compatible-for-yocto.patch \
+    file://0002-ltr30x-fix-claim-direct-polarity-on-6.18.patch \
     "
 
 DEPENDS += " dtc-native"
 
-S = "${WORKDIR}/git"
 
 INSANE_SKIP:${PN} = "file-rdeps"
 

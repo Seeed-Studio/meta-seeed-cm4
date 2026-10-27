@@ -2,6 +2,7 @@ From c7109f88e4d2a16a840651f7217e6c33f1e68910 Mon Sep 17 00:00:00 2001
 From: bigbearishappy <953308023@qq.com>
 Date: Fri, 27 Aug 2021 09:48:26 +0000
 Subject: [PATCH] yocto lvgl display input rotate
+Upstream-Status: Inappropriate [seeed board specific]
 
 ---
  lv_conf.h     |  6 +++---

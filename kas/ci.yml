@@ -1,0 +1,25 @@
+# CI overlay: shrink the build directory so the runner disk survives
+# image assembly. Artifacts in tmp/deploy and the sstate cache are kept.
+header:
+  version: 14
+
+local_conf_header:
+  ci: |
+    INHERIT += "rm_work"
+
+  zlib-premirror: |
+    # zlib.net has been serving corrupt tarballs (verified 2026-10-08:
+    # two different wrong sha256s from two networks, and the gzip
+    # header declares a 744MB uncompressed size for a 2.5MB source
+    # tarball). The checksum-verified official artifact is the
+    # madler/zlib GitHub release attachment, so fetch from there
+    # before ever touching zlib.net.
+    PREMIRRORS:prepend = "https://zlib.net/ https://github.com/madler/zlib/releases/download/v1.3.2/ \n"
+
+  pigz-premirror: |
+    # zlib.net round two (2026-10-23): pigz-2.8.tar.gz came back with
+    # the wrong sha256 on one runner (checksum failure) and stalled a
+    # fetch for 2+ hours on another (silent 330-min build timeout).
+    # The yoctoproject source mirror serves the checksum-correct
+    # tarball; never contact zlib.net for pigz either.
+    PREMIRRORS:prepend = "http://zlib.net/pigz/fossils/ https://downloads.yoctoproject.org/mirror/sources/ \n"

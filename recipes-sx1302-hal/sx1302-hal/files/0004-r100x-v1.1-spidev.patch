@@ -1,0 +1,17 @@
+Upstream-Status: Inappropriate [seeed r100x V1.1 board specific]
+
+reComputer R100x V1.1 wires the mini-PCIE2 LoRa module to SPI1 (GPIO17-21),
+so the packet forwarder talks to /dev/spidev1.1 (CE1). V1.0 boards keep the
+upstream default path with the ",uart2" dtoverlay parameter (SPI0, spidev0.1).
+
+--- a/packet_forwarder/global_conf.json.sx1250.EU868
++++ b/packet_forwarder/global_conf.json.sx1250.EU868
+@@ -1,7 +1,7 @@
+ {
+     "SX130x_conf": {
+         "com_type": "SPI",
+-        "com_path": "/dev/spidev0.0",
++        "com_path": "/dev/spidev1.1",
+         "lorawan_public": true,
+         "clksrc": 0,
+         "antenna_gain": 0, /* antenna gain, in dBi */

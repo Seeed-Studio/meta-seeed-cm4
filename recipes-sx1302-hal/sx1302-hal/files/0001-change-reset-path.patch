@@ -1,3 +1,5 @@
+Upstream-Status: Inappropriate [seeed board specific]
+
 --- a/packet_forwarder/src/lora_pkt_fwd.c
 +++ b/packet_forwarder/src/lora_pkt_fwd.c
 @@ -1642,7 +1642,7 @@ int main(int argc, char ** argv)
