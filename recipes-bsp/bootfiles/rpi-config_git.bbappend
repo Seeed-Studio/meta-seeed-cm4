@@ -1,4 +1,12 @@
 do_deploy:append() {
+    # meta-balena branch: under balenaOS, meta-balena-raspberrypi's own
+    # rpi-config append owns config.txt for these machines; writing our
+    # lines as well would apply the same overlays twice (e.g. both
+    # dtoverlay=reComputer-R100x and its r100x-v11 alias) and cause
+    # pinctrl/i2c conflicts. Skip everything when the balena layer set is
+    # present. Guarded with a block instead of an early return so appends
+    # from higher-priority layers still run afterwards.
+    if ${@bb.utils.contains('BBFILE_COLLECTIONS', 'balena-common', 'false', 'true', d)}; then
     CONFIG=${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/config.txt
     grep -q "^dtoverlay=vc4-kms-v3d-pi4$" $CONFIG || echo "dtoverlay=vc4-kms-v3d-pi4" >> $CONFIG
     grep -q "^dtoverlay=dwc2,dr_mode=host$" $CONFIG || echo "dtoverlay=dwc2,dr_mode=host" >> $CONFIG
@@ -59,5 +67,6 @@ do_deploy:append() {
         grep -q "^dtoverlay=reComputer-R22$" $CONFIG || echo "dtoverlay=reComputer-R22" >> $CONFIG
     else
         bbdebug 1 "No target device tree specified, check your MACHINE config"
+    fi
     fi
 }
