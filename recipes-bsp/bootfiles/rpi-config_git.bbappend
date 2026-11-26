@@ -1,6 +1,16 @@
+# KMS display overlay for the Seeed boards. vc4-kms-v3d-pi4 is the
+# BCM2711 (Pi 4 / CM4) variant. On the Pi 5 based boards (reComputer R2x,
+# R22) meta-raspberrypi's rpi-config already writes dtoverlay=${VC4DTBO}
+# (vc4-kms-v3d), and the firmware's overlay_map resolves both that and
+# vc4-kms-v3d-pi4 to vc4-kms-v3d-pi5, so the -pi4 line only applied the
+# same overlay a second time. Use vc4-kms-v3d there so the grep guard
+# below skips the duplicate.
+SEEED_VC4DTBO = "vc4-kms-v3d-pi4"
+SEEED_VC4DTBO:raspberrypi5 = "vc4-kms-v3d"
+
 do_deploy:append() {
     CONFIG=${DEPLOYDIR}/${BOOTFILES_DIR_NAME}/config.txt
-    grep -q "^dtoverlay=vc4-kms-v3d-pi4$" $CONFIG || echo "dtoverlay=vc4-kms-v3d-pi4" >> $CONFIG
+    grep -q "^dtoverlay=${SEEED_VC4DTBO}$" $CONFIG || echo "dtoverlay=${SEEED_VC4DTBO}" >> $CONFIG
     grep -q "^dtoverlay=dwc2,dr_mode=host$" $CONFIG || echo "dtoverlay=dwc2,dr_mode=host" >> $CONFIG
     grep -q "^enable_uart=1$" $CONFIG || echo "enable_uart=1" >> $CONFIG
 
