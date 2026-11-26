@@ -19,6 +19,7 @@ do_deploy:append() {
     # enabling spi0 there only produces a pinctrl conflict.
     if ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
         && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} \
+        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22', 'true', 'false', d)} \
         && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} \
         && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x', 'true', 'false', d)} \
         && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x-mender', 'true', 'false', d)} ; then
