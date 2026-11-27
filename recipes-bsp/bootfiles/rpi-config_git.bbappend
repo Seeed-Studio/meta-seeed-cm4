@@ -8,6 +8,55 @@
 SEEED_VC4DTBO = "vc4-kms-v3d-pi4"
 SEEED_VC4DTBO:raspberrypi5 = "vc4-kms-v3d"
 
+# Board config.txt lines: the board's seeed-linux-dtoverlays overlay and
+# the buses and parameters its hardware needs. balena-seeed-cm4 writes the
+# same list into the balenaOS config.txt, so a board fix made here reaches
+# both images. One config.txt line per space-separated token, written in
+# order. Distro choices (KMS overlay, USB mode, which UART gets the console
+# and which Bluetooth) stay in each layer's own rpi-config append.
+#
+# spi0 (GPIO7-11) is left off on R100x: the V1.1 board routes GPIO8-11 to
+# UART4 (RS485_3) and its TPM sits on spi1 via the reComputer-R100x
+# overlay. On the Pi 5 based boards spi=on has no use either.
+#
+# R100x without an overlay parameter is the V1.1 wiring (PCA9535 on i2c5,
+# i2c0 on GPIO44/45, RS485_1-3 on UART2-4). V1.0 boards need
+# "dtoverlay=reComputer-R100x,uart2" instead.
+#
+# reTerminal touch: the panel driver reports the panel as mounted
+# rotated, so DRM/fbcon consumers draw landscape, and the touch controller
+# already reports landscape coordinates (verified on hardware 2026-11-27).
+# tp_rotate=1 rotates the touch points once more for desktops that apply
+# an output transform to touch as well (Raspberry Pi OS bookworm with
+# kanshi "transform 270"; the lvgl demo carries the matching patch). Set
+# SEEED_RETERMINAL_OVERLAY = "reTerminal" for images that draw landscape
+# without such a transform.
+SEEED_RETERMINAL_OVERLAY ??= "reTerminal,tp_rotate=1,addr=0x38"
+
+SEEED_BOARD_CONFIG_R100X = "dtparam=i2c_arm=on dtoverlay=reComputer-R100x"
+SEEED_BOARD_CONFIG_R110X = "dtparam=spi=on dtparam=i2c_arm=on dtoverlay=reComputer-R110x"
+SEEED_BOARD_CONFIG_R2X = "dtoverlay=reComputer-R2x-base"
+SEEED_BOARD_CONFIG_R22 = "dtoverlay=reComputer-R22"
+SEEED_BOARD_CONFIG_RETERMINAL = "dtparam=spi=on dtoverlay=i2c3,pins_4_5 dtoverlay=${SEEED_RETERMINAL_OVERLAY}"
+SEEED_BOARD_CONFIG_RETERMINAL_DM = "dtparam=spi=on dtoverlay=reTerminal-DM dtparam=i2c_vc=on dtoverlay=i2c3,pins_4_5 dtparam=i2s=on"
+SEEED_BOARD_CONFIG_REROUTER = "dtparam=spi=on"
+
+SEEED_BOARD_CONFIG ?= ""
+SEEED_BOARD_CONFIG:seeed-recomputer-r100x = "${SEEED_BOARD_CONFIG_R100X}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r100x-mender = "${SEEED_BOARD_CONFIG_R100X}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r110x = "${SEEED_BOARD_CONFIG_R110X}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r110x-mender = "${SEEED_BOARD_CONFIG_R110X}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r2x = "${SEEED_BOARD_CONFIG_R2X}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r2x-mender = "${SEEED_BOARD_CONFIG_R2X}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r22 = "${SEEED_BOARD_CONFIG_R22}"
+SEEED_BOARD_CONFIG:seeed-recomputer-r22-mender = "${SEEED_BOARD_CONFIG_R22}"
+SEEED_BOARD_CONFIG:seeed-reterminal = "${SEEED_BOARD_CONFIG_RETERMINAL}"
+SEEED_BOARD_CONFIG:seeed-reterminal-mender = "${SEEED_BOARD_CONFIG_RETERMINAL}"
+SEEED_BOARD_CONFIG:seeed-reterminal-dm = "${SEEED_BOARD_CONFIG_RETERMINAL_DM}"
+SEEED_BOARD_CONFIG:seeed-reterminal-dm-mender = "${SEEED_BOARD_CONFIG_RETERMINAL_DM}"
+SEEED_BOARD_CONFIG:seeed-rerouter-cm4 = "${SEEED_BOARD_CONFIG_REROUTER}"
+SEEED_BOARD_CONFIG:seeed-rerouter-cm4-mender = "${SEEED_BOARD_CONFIG_REROUTER}"
+
 do_deploy:append() {
     # meta-balena branch: under balenaOS, meta-balena-raspberrypi's own
     # rpi-config append owns config.txt for these machines; writing our
@@ -22,59 +71,11 @@ do_deploy:append() {
     grep -q "^dtoverlay=dwc2,dr_mode=host$" $CONFIG || echo "dtoverlay=dwc2,dr_mode=host" >> $CONFIG
     grep -q "^enable_uart=1$" $CONFIG || echo "enable_uart=1" >> $CONFIG
 
-    # SPI0 (GPIO8-11) is V1.0 R100x wiring; V1.1 boards use SPI1 via the
-    # reComputer-R100x overlay and wire GPIO8-11 to UART4 (RS485_3), so
-    # enabling spi0 there only produces a pinctrl conflict.
-    if ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x', 'true', 'false', d)} \
-        && ! ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x-mender', 'true', 'false', d)} ; then
-        grep -q "^dtparam=spi=on$" $CONFIG || echo "dtparam=spi=on" >> $CONFIG
+    if [ -z "${SEEED_BOARD_CONFIG}" ]; then
+        bbdebug 1 "No SEEED_BOARD_CONFIG for ${MACHINE}, check your MACHINE config"
     fi
-    
-    if ${@bb.utils.contains('MACHINE', 'seeed-reterminal-DM', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-DM-mender', 'true', 'false', d)}; then
-        grep -q "^dtoverlay=reTerminal-DM$" $CONFIG || echo "dtoverlay=reTerminal-DM" >> $CONFIG
-        grep -q "^dtparam=i2c_vc=on$" $CONFIG || echo "dtparam=i2c_vc=on" >> $CONFIG
-        grep -q "^dtoverlay=i2c3,pins_4_5$" $CONFIG || echo "dtoverlay=i2c3,pins_4_5" >> $CONFIG
-        grep -q "^dtparam=i2s=on$" $CONFIG || echo "dtparam=i2s=on" >> $CONFIG
-    elif ${@bb.utils.contains('MACHINE', 'seeed-reterminal', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-reterminal-mender', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'dual-gbe-cm4', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'dual-gbe-cm4-mender', 'true', 'false', d)}; then
-        grep -q "^dtoverlay=i2c3,pins_4_5$" $CONFIG || echo "dtoverlay=i2c3,pins_4_5" >> $CONFIG
-        grep -q "^dtoverlay=reTerminal,tp_rotate=1,addr=0x38$" $CONFIG || echo "dtoverlay=reTerminal,tp_rotate=1,addr=0x38" >> $CONFIG
-    elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x-mender', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x', 'true', 'false', d)}; then
-        grep -q "^dtparam=i2c_arm=on$" $CONFIG || echo "dtparam=i2c_arm=on" >> $CONFIG
-        # V1.0 wired an analog speaker to GPIO18/19 (audio PWM); V1.1 dropped
-        # the speaker and moved GPIO18/19 to SPI1 (TPM CE0 / MISO). Keeping the
-        # audio remap would let snd_bcm2835 steal the SPI1 pins whenever the
-        # audio driver loads, silently breaking the TPM bus.
-        # V1.1 boards wire the pca9535 expander to i2c5 (GPIO12/13). Without a
-        # parameter the reComputer-R100x overlay enables i2c5 and places the
-        # expander there. The legacy ",uart2" parameter is the V1.0 wiring: it
-        # retargets the expander to i2c3 (GPIO2/3), which V1.1 boards leave
-        # unconnected - the expander probe then fails with -5 and the whole
-        # deferred island (vdd_out, eeprom, LEDs, buzzer, RS485/4G enables)
-        # never comes up. Verified on r100x V1.1 hardware: with this line the
-        # pca953x driver probes 5-0021 at ~3.2s and all consumers bind.
-        # V1.0 boards need "dtoverlay=reComputer-R100x,uart2" instead.
-        grep -q "^dtoverlay=reComputer-R100x$" $CONFIG || echo "dtoverlay=reComputer-R100x" >> $CONFIG
-    elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r110x-mender', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r110x', 'true', 'false', d)}; then
-        grep -q "^dtparam=i2c_arm=on$" $CONFIG || echo "dtparam=i2c_arm=on" >> $CONFIG
-        grep -q "^dtoverlay=reComputer-R110x$" $CONFIG || echo "dtoverlay=reComputer-R110x" >> $CONFIG
-    elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r2x-mender', 'true', 'false', d)} ; then
-        grep -q "^dtoverlay=reComputer-R2x-base$" $CONFIG || echo "dtoverlay=reComputer-R2x-base" >> $CONFIG
-    elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22', 'true', 'false', d)} \
-        || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r22-mender', 'true', 'false', d)} ; then
-        grep -q "^dtoverlay=reComputer-R22$" $CONFIG || echo "dtoverlay=reComputer-R22" >> $CONFIG
-    else
-        bbdebug 1 "No target device tree specified, check your MACHINE config"
-    fi
+    for line in ${SEEED_BOARD_CONFIG}; do
+        grep -qxF "$line" $CONFIG || echo "$line" >> $CONFIG
+    done
     fi
 }
