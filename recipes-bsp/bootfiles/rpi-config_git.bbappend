@@ -37,13 +37,10 @@ do_deploy:append() {
         || ${@bb.utils.contains('MACHINE', 'dual-gbe-cm4', 'true', 'false', d)} \
         || ${@bb.utils.contains('MACHINE', 'dual-gbe-cm4-mender', 'true', 'false', d)}; then
         grep -q "^dtoverlay=i2c3,pins_4_5$" $CONFIG || echo "dtoverlay=i2c3,pins_4_5" >> $CONFIG
-        grep -q "^dtparam=i2c_vc=on$" $CONFIG || echo "dtparam=i2c_vc=on" >> $CONFIG
         grep -q "^dtoverlay=reTerminal,tp_rotate=1,addr=0x38$" $CONFIG || echo "dtoverlay=reTerminal,tp_rotate=1,addr=0x38" >> $CONFIG
     elif ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x-mender', 'true', 'false', d)} \
         || ${@bb.utils.contains('MACHINE', 'seeed-recomputer-r100x', 'true', 'false', d)}; then
         grep -q "^dtparam=i2c_arm=on$" $CONFIG || echo "dtparam=i2c_arm=on" >> $CONFIG
-        grep -q "^dtoverlay=i2c1,pins_44_45$" $CONFIG || echo "dtoverlay=i2c1,pins_44_45" >> $CONFIG
-        grep -q "^dtoverlay=i2c6,pins_22_23$" $CONFIG || echo "dtoverlay=i2c6,pins_22_23" >> $CONFIG
         # V1.0 wired an analog speaker to GPIO18/19 (audio PWM); V1.1 dropped
         # the speaker and moved GPIO18/19 to SPI1 (TPM CE0 / MISO). Keeping the
         # audio remap would let snd_bcm2835 steal the SPI1 pins whenever the
